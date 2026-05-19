@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function activeUser() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && currentUserDoc().data.active == true;
+    }
+
+    function adminUser() {
+      return activeUser() && currentUserDoc().data.role == 'admin';
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if adminUser();
+    }
+
+    match /transactions/{transactionId} {
+      allow read, create, update, delete: if activeUser();
+    }
+
+    match /employees/{employeeId} {
+      allow read: if activeUser();
+      allow create, update: if adminUser();
+      allow delete: if false;
+    }
+
+    match /deleted_transactions/{deletedTransactionId} {
+      allow create: if activeUser();
+      allow read: if adminUser();
+      allow update, delete: if false;
+    }
+  }
+}

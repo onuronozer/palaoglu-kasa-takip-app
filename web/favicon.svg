@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="30" fill="#07111F"/>
+  <rect x="18" y="18" width="92" height="92" rx="24" fill="#0F1E33" stroke="#15D18F" stroke-width="4"/>
+  <text x="64" y="78" text-anchor="middle" font-size="58" font-family="Arial, sans-serif" font-weight="900" fill="#15D18F">₺</text>
+</svg>

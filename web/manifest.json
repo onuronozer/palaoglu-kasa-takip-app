@@ -1,0 +1,24 @@
+{
+  "name": "Palaoğlu Kasa Takip",
+  "short_name": "Palaoğlu Kasa",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#07111F",
+  "theme_color": "#07111F",
+  "description": "Küçük işletmeler için premium koyu temalı kasa takip uygulaması.",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "maskable_icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

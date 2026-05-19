@@ -1,0 +1,76 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/money_utils.dart';
+import '../../../core/utils/report_utils.dart';
+import '../../dashboard/widgets/metric_card.dart';
+
+class ReportSummaryCards extends StatelessWidget {
+  const ReportSummaryCards({
+    required this.summary,
+    super.key,
+  });
+
+  final FinancialSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = [
+      MetricCard(
+        title: 'Toplam Ciro',
+        value: MoneyUtils.format(summary.monthlyCiro),
+        icon: Icons.trending_up,
+        color: AppColors.income,
+      ),
+      MetricCard(
+        title: 'Toplam Masraf',
+        value: MoneyUtils.format(summary.monthlyMasraf),
+        icon: Icons.receipt_long,
+        color: AppColors.expense,
+      ),
+      MetricCard(
+        title: 'İşçi Ödemeleri',
+        value: MoneyUtils.format(summary.employeePayments),
+        icon: Icons.badge_outlined,
+        color: AppColors.warning,
+      ),
+      MetricCard(
+        title: 'Bankaya Yatan',
+        value: MoneyUtils.format(summary.bankDeposits),
+        icon: Icons.account_balance,
+        color: AppColors.bank,
+      ),
+      MetricCard(
+        title: 'Kar / Zarar',
+        value: MoneyUtils.format(summary.profitLoss),
+        icon: Icons.analytics_outlined,
+        color: summary.profitLoss >= 0 ? AppColors.primary : AppColors.expense,
+      ),
+      MetricCard(
+        title: 'Kasa Nakit',
+        value: MoneyUtils.format(summary.cashOnHand),
+        icon: Icons.account_balance_wallet_outlined,
+        color: AppColors.turquoise,
+      ),
+      MetricCard(
+        title: 'Kalan Borç',
+        value: MoneyUtils.format(summary.remainingDebt),
+        icon: Icons.handshake_outlined,
+        color: AppColors.debt,
+      ),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: cards.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        mainAxisExtent: 132,
+      ),
+      itemBuilder: (context, index) => cards[index],
+    );
+  }
+}
