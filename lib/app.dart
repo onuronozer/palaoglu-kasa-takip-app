@@ -9,6 +9,7 @@ import 'features/auth/login_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/employees/employee_settings_screen.dart';
 import 'features/entry/entry_screen.dart';
+import 'features/bulk_entry/bulk_entry_screen.dart';
 import 'features/report/report_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -31,6 +32,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return AuthGate(
             child: EntryScreen(
               entryType: state.pathParameters['type'] ?? 'ciro',
+              initialMonthKey: state.uri.queryParameters['month'],
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/bulk-entry',
+        builder: (context, state) {
+          return AuthGate(
+            child: BulkEntryScreen(
               initialMonthKey: state.uri.queryParameters['month'],
             ),
           );

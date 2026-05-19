@@ -56,6 +56,23 @@ class TransactionRepository {
     await doc.set(transaction.copyWith(id: id).toCreateMap());
   }
 
+  Future<void> addTransactions(List<TransactionModel> transactions) async {
+    if (transactions.isEmpty) {
+      return;
+    }
+
+    final batch = _firestore.batch();
+    for (final transaction in transactions) {
+      final id = transaction.id.isEmpty ? Uuid().v4() : transaction.id;
+      batch.set(
+        _transactions.doc(id),
+        transaction.copyWith(id: id).toCreateMap(),
+      );
+    }
+
+    await batch.commit();
+  }
+
   Future<void> deleteTransaction({
     required TransactionModel transaction,
     required AppUser deletedBy,

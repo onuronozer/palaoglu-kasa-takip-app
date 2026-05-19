@@ -424,6 +424,12 @@ class _ActionGrid extends StatelessWidget {
         onTap: () => context.push('/entry/ciro?month=$monthKey'),
       ),
       ActionCard(
+        title: 'Toplu Giriş',
+        icon: Icons.playlist_add,
+        color: AppColors.primary,
+        onTap: () => context.push('/bulk-entry?month=$monthKey'),
+      ),
+      ActionCard(
         title: 'Masraf Gir',
         icon: Icons.receipt_long,
         color: AppColors.expense,
