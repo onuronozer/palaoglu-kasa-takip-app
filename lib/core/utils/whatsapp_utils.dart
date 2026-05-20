@@ -23,6 +23,9 @@ class WhatsAppUtils {
       ..writeln('Bankaya Yatan: ${MoneyUtils.format(summary.bankDeposits)}')
       ..writeln('Kar / Zarar: ${MoneyUtils.format(summary.profitLoss)}')
       ..writeln('Kasa Nakit: ${MoneyUtils.format(summary.cashOnHand)}')
+      ..writeln('Kasadan Ödenen: ${MoneyUtils.format(summary.cashPaidTotal)}')
+      ..writeln('Şahsi Ödenen: ${MoneyUtils.format(summary.personalPaidTotal)}')
+      ..writeln('Bankadan Ödenen: ${MoneyUtils.format(summary.bankPaidTotal)}')
       ..writeln('Kalan Borç: ${MoneyUtils.format(summary.remainingDebt)}')
       ..writeln()
       ..writeln('İşçi Ödemeleri:');
@@ -35,8 +38,8 @@ class WhatsAppUtils {
       final detail = employee.isOverPaid
           ? 'Fazla ${MoneyUtils.format(employee.overPaid)}'
           : employee.isComplete
-              ? 'Tamamlandı'
-              : 'Kalan ${MoneyUtils.format(employee.remaining)}';
+          ? 'Tamamlandı'
+          : 'Kalan ${MoneyUtils.format(employee.remaining)}';
 
       buffer.writeln(
         '${employee.name}: ${MoneyUtils.format(employee.paid)} / '

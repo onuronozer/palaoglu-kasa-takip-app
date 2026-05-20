@@ -14,6 +14,7 @@ class TransactionModel {
     required this.description,
     required this.createdByUid,
     required this.createdByName,
+    this.paymentSource = PaymentSources.cash,
     this.createdAt,
     this.updatedAt,
     this.status = 'active',
@@ -29,11 +30,18 @@ class TransactionModel {
   final String description;
   final String createdByUid;
   final String createdByName;
+  final String paymentSource;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final String status;
 
   String get typeLabel => TransactionTypes.label(type);
+
+  String get paymentSourceLabel => PaymentSources.label(paymentSource);
+
+  bool get affectsCash =>
+      (type != TransactionTypes.masraf && type != TransactionTypes.isci) ||
+      paymentSource == PaymentSources.cash;
 
   String get subjectLabel {
     if (type == TransactionTypes.isci || type == TransactionTypes.borc) {
@@ -42,9 +50,7 @@ class TransactionModel {
     return category;
   }
 
-  factory TransactionModel.fromDoc(
-    DocumentSnapshot<Map<String, dynamic>> doc,
-  ) {
+  factory TransactionModel.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
     return TransactionModel(
       id: doc.id,
@@ -57,6 +63,7 @@ class TransactionModel {
       description: data['description'] as String? ?? '',
       createdByUid: data['createdByUid'] as String? ?? '',
       createdByName: data['createdByName'] as String? ?? '',
+      paymentSource: data['paymentSource'] as String? ?? PaymentSources.cash,
       createdAt: _dateFromFirestore(data['createdAt']),
       updatedAt: _dateFromFirestore(data['updatedAt']),
       status: data['status'] as String? ?? 'active',
@@ -74,6 +81,7 @@ class TransactionModel {
     String? description,
     String? createdByUid,
     String? createdByName,
+    String? paymentSource,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? status,
@@ -89,6 +97,7 @@ class TransactionModel {
       description: description ?? this.description,
       createdByUid: createdByUid ?? this.createdByUid,
       createdByName: createdByName ?? this.createdByName,
+      paymentSource: paymentSource ?? this.paymentSource,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       status: status ?? this.status,
@@ -107,6 +116,7 @@ class TransactionModel {
       'description': description,
       'createdByUid': createdByUid,
       'createdByName': createdByName,
+      'paymentSource': paymentSource,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
       'status': status,
@@ -125,8 +135,27 @@ class TransactionModel {
       'description': description,
       'createdByUid': createdByUid,
       'createdByName': createdByName,
+      'paymentSource': paymentSource,
       if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
+      'status': status,
+    };
+  }
+
+  Map<String, dynamic> toUpdateMap() {
+    return {
+      'id': id,
+      'date': date,
+      'monthKey': monthKey,
+      'type': type,
+      'category': category,
+      'person': person,
+      'amount': amount,
+      'description': description,
+      'createdByUid': createdByUid,
+      'createdByName': createdByName,
+      'paymentSource': paymentSource,
+      'updatedAt': FieldValue.serverTimestamp(),
       'status': status,
     };
   }

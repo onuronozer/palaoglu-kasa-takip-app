@@ -7,10 +7,7 @@ import '../../../core/utils/money_utils.dart';
 import '../../../core/utils/report_utils.dart';
 
 class ExpenseCategoryChart extends StatelessWidget {
-  const ExpenseCategoryChart({
-    required this.categories,
-    super.key,
-  });
+  const ExpenseCategoryChart({required this.categories, super.key});
 
   final List<ExpenseCategorySummary> categories;
 
@@ -28,7 +25,10 @@ class ExpenseCategoryChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Masraf Kategorileri', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Masraf Kategorileri',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -74,10 +74,7 @@ class ExpenseCategoryChart extends StatelessWidget {
 }
 
 class _CategoryLine extends StatelessWidget {
-  const _CategoryLine({
-    required this.category,
-    required this.color,
-  });
+  const _CategoryLine({required this.category, required this.color});
 
   final ExpenseCategorySummary category;
   final Color color;
@@ -105,7 +102,10 @@ class _CategoryLine extends StatelessWidget {
               ),
               Text(
                 '${(category.percent * 100).round()}%',
-                style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
+                style: const TextStyle(
+                  color: AppColors.mutedText,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),

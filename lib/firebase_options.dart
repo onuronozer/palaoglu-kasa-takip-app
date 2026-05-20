@@ -35,5 +35,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'palaoglu-14bf0.firebasestorage.app',
     measurementId: 'G-G8L5JP0VP1',
   );
-
 }

@@ -45,10 +45,7 @@ class AppCategories {
   static const debtGiven = 'Verilen Borç';
   static const debtPayment = 'Alınan Ödeme';
 
-  static const debtCategories = [
-    debtGiven,
-    debtPayment,
-  ];
+  static const debtCategories = [debtGiven, debtPayment];
 
   static const defaultEmployees = [
     DefaultEmployeeDefinition(name: 'Bolat', salary: 34000),
@@ -60,11 +57,31 @@ class AppCategories {
   ];
 }
 
+class PaymentSources {
+  const PaymentSources._();
+
+  static const cash = 'cash';
+  static const personal = 'personal';
+  static const bank = 'bank';
+
+  static const all = [cash, personal, bank];
+
+  static String label(String source) {
+    switch (source) {
+      case cash:
+        return 'Kasadan Ödendi';
+      case personal:
+        return 'Şahsi Hesaptan Ödendi';
+      case bank:
+        return 'Bankadan Ödendi';
+      default:
+        return 'Kasadan Ödendi';
+    }
+  }
+}
+
 class DefaultEmployeeDefinition {
-  const DefaultEmployeeDefinition({
-    required this.name,
-    required this.salary,
-  });
+  const DefaultEmployeeDefinition({required this.name, required this.salary});
 
   final String name;
   final double salary;

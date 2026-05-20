@@ -13,6 +13,7 @@ class TransactionList extends StatelessWidget {
     required this.filter,
     required this.onFilterChanged,
     required this.onDelete,
+    required this.onEdit,
     super.key,
   });
 
@@ -21,6 +22,7 @@ class TransactionList extends StatelessWidget {
   final String filter;
   final ValueChanged<String> onFilterChanged;
   final ValueChanged<TransactionModel> onDelete;
+  final ValueChanged<TransactionModel> onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +85,7 @@ class TransactionList extends StatelessWidget {
                 return _TransactionTile(
                   transaction: transaction,
                   onDelete: () => onDelete(transaction),
+                  onEdit: () => onEdit(transaction),
                 );
               },
             ),
@@ -120,10 +123,12 @@ class _TransactionTile extends StatelessWidget {
   const _TransactionTile({
     required this.transaction,
     required this.onDelete,
+    required this.onEdit,
   });
 
   final TransactionModel transaction;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -161,10 +166,7 @@ class _TransactionTile extends StatelessWidget {
                   ),
                   Text(
                     MoneyUtils.format(transaction.amount),
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: TextStyle(color: color, fontWeight: FontWeight.w900),
                   ),
                 ],
               ),
@@ -173,7 +175,10 @@ class _TransactionTile extends StatelessWidget {
                 '${transaction.date} • ${transaction.subjectLabel}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.mutedText, fontSize: 12),
+                style: const TextStyle(
+                  color: AppColors.mutedText,
+                  fontSize: 12,
+                ),
               ),
               if (transaction.description.trim().isNotEmpty) ...[
                 const SizedBox(height: 3),
@@ -187,16 +192,39 @@ class _TransactionTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'Kaydeden: ${transaction.createdByName}',
-                style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
+                style: const TextStyle(
+                  color: AppColors.mutedText,
+                  fontSize: 11,
+                ),
               ),
+              if (transaction.type == TransactionTypes.masraf ||
+                  transaction.type == TransactionTypes.isci) ...[
+                const SizedBox(height: 3),
+                Text(
+                  transaction.paymentSourceLabel,
+                  style: const TextStyle(
+                    color: AppColors.mutedText,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
         const SizedBox(width: 8),
-        IconButton(
-          tooltip: 'Sil',
-          onPressed: onDelete,
-          icon: const Icon(Icons.delete_outline, color: AppColors.expense),
+        Column(
+          children: [
+            IconButton(
+              tooltip: 'Düzenle',
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+            ),
+            IconButton(
+              tooltip: 'Sil',
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline, color: AppColors.expense),
+            ),
+          ],
         ),
       ],
     );

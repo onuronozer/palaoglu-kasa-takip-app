@@ -14,13 +14,10 @@ import '../auth/auth_controller.dart';
 import 'widgets/amount_input.dart';
 import 'widgets/category_selector.dart';
 import 'widgets/date_selector.dart';
+import 'widgets/payment_source_selector.dart';
 
 class EntryScreen extends ConsumerStatefulWidget {
-  const EntryScreen({
-    required this.entryType,
-    this.initialMonthKey,
-    super.key,
-  });
+  const EntryScreen({required this.entryType, this.initialMonthKey, super.key});
 
   final String entryType;
   final String? initialMonthKey;
@@ -37,6 +34,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   late DateTime _selectedDate;
   String? _selectedCategory;
   String? _selectedEmployee;
+  String _paymentSource = PaymentSources.cash;
   bool _isSubmitting = false;
   String? _error;
 
@@ -110,12 +108,26 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                       },
                     ),
                     const SizedBox(height: 14),
+                    PaymentSourceSelector(
+                      selected: _paymentSource,
+                      onChanged: (value) {
+                        setState(() => _paymentSource = value);
+                      },
+                    ),
+                    const SizedBox(height: 14),
                   ],
                   if (widget.entryType == TransactionTypes.isci) ...[
                     _EmployeeSelector(
                       selectedEmployee: _selectedEmployee,
                       onChanged: (value) {
                         setState(() => _selectedEmployee = value);
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    PaymentSourceSelector(
+                      selected: _paymentSource,
+                      onChanged: (value) {
+                        setState(() => _paymentSource = value);
                       },
                     ),
                     const SizedBox(height: 14),
@@ -210,6 +222,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       description: _descriptionController.text.trim(),
       createdByUid: appUser.uid,
       createdByName: appUser.displayName,
+      paymentSource: _paymentSourceForSave(),
     );
 
     try {
@@ -217,9 +230,9 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kayıt eklendi.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Kayıt eklendi.')));
       context.pop();
     } catch (_) {
       if (!mounted) {
@@ -284,6 +297,14 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       return _personController.text.trim();
     }
     return '';
+  }
+
+  String _paymentSourceForSave() {
+    if (widget.entryType == TransactionTypes.masraf ||
+        widget.entryType == TransactionTypes.isci) {
+      return _paymentSource;
+    }
+    return PaymentSources.cash;
   }
 
   String _titleForType(String type) {

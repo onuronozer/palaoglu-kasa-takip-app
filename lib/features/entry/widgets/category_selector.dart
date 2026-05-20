@@ -19,10 +19,7 @@ class CategorySelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,

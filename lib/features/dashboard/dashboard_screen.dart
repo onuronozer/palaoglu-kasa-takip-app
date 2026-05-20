@@ -50,70 +50,73 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                   sliver: SliverList(
-                    delegate: SliverChildListDelegate(
-                      [
-                        _Header(user: appUser),
-                        const SizedBox(height: 18),
-                        MonthSelector(
-                          selectedMonth: _selectedMonth,
-                          onPrevious: () {
-                            setState(() {
-                              _selectedMonth =
-                                  AppDateUtils.previousMonth(_selectedMonth);
-                            });
-                          },
-                          onNext: () {
-                            setState(() {
-                              _selectedMonth =
-                                  AppDateUtils.nextMonth(_selectedMonth);
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 18),
-                        transactionsState.when(
-                          loading: () => const _DashboardLoading(),
-                          error: (_, __) => const _ErrorCard(
-                            message:
-                                'Kayıtlar alınamadı. İnternet bağlantısını kontrol edin.',
-                          ),
-                          data: (transactions) {
-                            final summary = ReportUtils.summarize(
-                              transactions,
-                              todayKey: AppDateUtils.dateKey(DateTime.now()),
+                    delegate: SliverChildListDelegate([
+                      _Header(user: appUser),
+                      const SizedBox(height: 18),
+                      MonthSelector(
+                        selectedMonth: _selectedMonth,
+                        onPrevious: () {
+                          setState(() {
+                            _selectedMonth = AppDateUtils.previousMonth(
+                              _selectedMonth,
                             );
+                          });
+                        },
+                        onNext: () {
+                          setState(() {
+                            _selectedMonth = AppDateUtils.nextMonth(
+                              _selectedMonth,
+                            );
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 18),
+                      transactionsState.when(
+                        loading: () => const _DashboardLoading(),
+                        error: (_, __) => const _ErrorCard(
+                          message:
+                              'Kayıtlar alınamadı. İnternet bağlantısını kontrol edin.',
+                        ),
+                        data: (transactions) {
+                          final summary = ReportUtils.summarize(
+                            transactions,
+                            todayKey: AppDateUtils.dateKey(DateTime.now()),
+                          );
 
-                            return Column(
-                              children: [
-                                _MetricGrid(summary: summary),
-                                const SizedBox(height: 18),
-                                _ActionGrid(
-                                  monthKey: monthKey,
-                                  isAdmin: appUser?.isAdmin ?? false,
-                                ),
-                                const SizedBox(height: 18),
-                                TransactionList(
-                                  transactions: transactions,
-                                  selectedMonth: _selectedMonth,
-                                  filter: _filter,
-                                  onFilterChanged: (filter) {
-                                    setState(() => _filter = filter);
-                                  },
-                                  onDelete: (transaction) {
-                                    if (appUser == null) {
-                                      _showSnack(
-                                        'Bu işlem için yetkiniz yok',
-                                      );
-                                      return;
-                                    }
-                                    _confirmDelete(transaction, appUser);
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
-                    ),
+                          return Column(
+                            children: [
+                              _MetricGrid(summary: summary),
+                              const SizedBox(height: 18),
+                              _ActionGrid(
+                                monthKey: monthKey,
+                                isAdmin: appUser?.isAdmin ?? false,
+                              ),
+                              const SizedBox(height: 18),
+                              TransactionList(
+                                transactions: transactions,
+                                selectedMonth: _selectedMonth,
+                                filter: _filter,
+                                onFilterChanged: (filter) {
+                                  setState(() => _filter = filter);
+                                },
+                                onEdit: (transaction) {
+                                  context.push(
+                                    '/edit/${transaction.id}?month=$monthKey',
+                                  );
+                                },
+                                onDelete: (transaction) {
+                                  if (appUser == null) {
+                                    _showSnack('Bu işlem için yetkiniz yok');
+                                    return;
+                                  }
+                                  _confirmDelete(transaction, appUser);
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ]),
                   ),
                 ),
               ],
@@ -181,10 +184,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     try {
-      await ref.read(transactionRepositoryProvider).deleteTransaction(
-            transaction: transaction,
-            deletedBy: appUser,
-          );
+      await ref
+          .read(transactionRepositoryProvider)
+          .deleteTransaction(transaction: transaction, deletedBy: appUser);
       _showSnack('Kayıt silindi ve arşive taşındı.');
     } catch (_) {
       _showSnack('Kayıt silinemedi. İnternet bağlantısını kontrol edin.');
@@ -195,9 +197,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -214,10 +216,7 @@ class _Header extends ConsumerWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppColors.surfaceAlt,
-            AppColors.surface,
-          ],
+          colors: [AppColors.surfaceAlt, AppColors.surface],
         ),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: AppColors.border),
@@ -294,10 +293,7 @@ class _Header extends ConsumerWidget {
 }
 
 class _UserPill extends StatelessWidget {
-  const _UserPill({
-    required this.icon,
-    required this.label,
-  });
+  const _UserPill({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -406,10 +402,7 @@ class _MetricGrid extends StatelessWidget {
 }
 
 class _ActionGrid extends StatelessWidget {
-  const _ActionGrid({
-    required this.monthKey,
-    required this.isAdmin,
-  });
+  const _ActionGrid({required this.monthKey, required this.isAdmin});
 
   final String monthKey;
   final bool isAdmin;
@@ -428,6 +421,12 @@ class _ActionGrid extends StatelessWidget {
         icon: Icons.playlist_add,
         color: AppColors.primary,
         onTap: () => context.push('/bulk-entry?month=$monthKey'),
+      ),
+      ActionCard(
+        title: 'Kayıt Dökümü',
+        icon: Icons.list_alt_outlined,
+        color: AppColors.turquoise,
+        onTap: () => context.push('/records?month=$monthKey'),
       ),
       ActionCard(
         title: 'Masraf Gir',
@@ -490,9 +489,7 @@ class _DashboardLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 80),
-      child: Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      ),
+      child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
     );
   }
 }
@@ -517,10 +514,7 @@ class _ErrorCard extends StatelessWidget {
 }
 
 class _DialogLine extends StatelessWidget {
-  const _DialogLine({
-    required this.label,
-    required this.value,
-  });
+  const _DialogLine({required this.label, required this.value});
 
   final String label;
   final String value;

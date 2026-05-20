@@ -56,11 +56,13 @@ class DateSelector extends StatelessWidget {
             ),
             _QuickDateButton(
               label: 'Ay Başı',
-              onTap: () => onChanged(AppDateUtils.firstDayOfMonth(selectedMonth)),
+              onTap: () =>
+                  onChanged(AppDateUtils.firstDayOfMonth(selectedMonth)),
             ),
             _QuickDateButton(
               label: 'Ay Sonu',
-              onTap: () => onChanged(AppDateUtils.lastDayOfMonth(selectedMonth)),
+              onTap: () =>
+                  onChanged(AppDateUtils.lastDayOfMonth(selectedMonth)),
             ),
           ],
         ),
@@ -93,7 +95,9 @@ class DateSelector extends StatelessWidget {
                 child: Container(
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : AppColors.surfaceAlt,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected ? AppColors.primary : AppColors.border,
@@ -118,19 +122,13 @@ class DateSelector extends StatelessWidget {
 }
 
 class _QuickDateButton extends StatelessWidget {
-  const _QuickDateButton({
-    required this.label,
-    required this.onTap,
-  });
+  const _QuickDateButton({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onTap,
-      child: Text(label),
-    );
+    return OutlinedButton(onPressed: onTap, child: Text(label));
   }
 }

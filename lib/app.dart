@@ -10,6 +10,8 @@ import 'features/dashboard/dashboard_screen.dart';
 import 'features/employees/employee_settings_screen.dart';
 import 'features/entry/entry_screen.dart';
 import 'features/bulk_entry/bulk_entry_screen.dart';
+import 'features/records/edit_transaction_screen.dart';
+import 'features/records/records_screen.dart';
 import 'features/report/report_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -22,10 +24,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return const AuthGate(child: DashboardScreen());
         },
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/entry/:type',
         builder: (context, state) {
@@ -42,6 +41,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           return AuthGate(
             child: BulkEntryScreen(
+              initialMonthKey: state.uri.queryParameters['month'],
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/records',
+        builder: (context, state) {
+          return AuthGate(
+            child: RecordsScreen(
+              initialMonthKey: state.uri.queryParameters['month'],
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/edit/:id',
+        builder: (context, state) {
+          return AuthGate(
+            child: EditTransactionScreen(
+              transactionId: state.pathParameters['id'] ?? '',
               initialMonthKey: state.uri.queryParameters['month'],
             ),
           );
@@ -97,10 +117,7 @@ class PalaogluKasaApp extends ConsumerWidget {
 }
 
 class AuthGate extends ConsumerWidget {
-  const AuthGate({
-    required this.child,
-    super.key,
-  });
+  const AuthGate({required this.child, super.key});
 
   final Widget child;
 
@@ -109,11 +126,13 @@ class AuthGate extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
 
     return authState.when(
-      loading: () => const _LoadingScaffold(message: 'Oturum kontrol ediliyor...'),
+      loading: () =>
+          const _LoadingScaffold(message: 'Oturum kontrol ediliyor...'),
       error: (_, __) => const _MessageScaffold(
         icon: Icons.wifi_off_outlined,
         title: 'Bağlantı sorunu',
-        message: 'Oturum bilgisi okunamadı. İnternet bağlantısını kontrol edin.',
+        message:
+            'Oturum bilgisi okunamadı. İnternet bağlantısını kontrol edin.',
       ),
       data: (firebaseUser) {
         if (firebaseUser == null) {
@@ -126,7 +145,8 @@ class AuthGate extends ConsumerWidget {
           error: (_, __) => const _MessageScaffold(
             icon: Icons.wifi_off_outlined,
             title: 'Profil okunamadı',
-            message: 'Kullanıcı profili alınamadı. İnternet bağlantısını kontrol edin.',
+            message:
+                'Kullanıcı profili alınamadı. İnternet bağlantısını kontrol edin.',
           ),
           data: (appUser) {
             if (appUser == null) {
@@ -135,7 +155,8 @@ class AuthGate extends ConsumerWidget {
                 title: 'Yetki tanımı yok',
                 message: 'Bu kullanıcı için yetki tanımı bulunamadı',
                 actionLabel: 'Çıkış Yap',
-                onAction: () => ref.read(authControllerProvider.notifier).signOut(),
+                onAction: () =>
+                    ref.read(authControllerProvider.notifier).signOut(),
               );
             }
 
@@ -145,7 +166,8 @@ class AuthGate extends ConsumerWidget {
                 title: 'Kullanıcı pasif',
                 message: 'Bu kullanıcı pasif',
                 actionLabel: 'Çıkış Yap',
-                onAction: () => ref.read(authControllerProvider.notifier).signOut(),
+                onAction: () =>
+                    ref.read(authControllerProvider.notifier).signOut(),
               );
             }
 

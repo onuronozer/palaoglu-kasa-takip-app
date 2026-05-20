@@ -15,6 +15,12 @@ class FinancialSummary {
     required this.bankDeposits,
     required this.debtGiven,
     required this.debtPaid,
+    required this.cashPaidMasraf,
+    required this.cashPaidEmployees,
+    required this.personalPaidMasraf,
+    required this.personalPaidEmployees,
+    required this.bankPaidMasraf,
+    required this.bankPaidEmployees,
   });
 
   final double todayCiro;
@@ -25,12 +31,21 @@ class FinancialSummary {
   final double bankDeposits;
   final double debtGiven;
   final double debtPaid;
+  final double cashPaidMasraf;
+  final double cashPaidEmployees;
+  final double personalPaidMasraf;
+  final double personalPaidEmployees;
+  final double bankPaidMasraf;
+  final double bankPaidEmployees;
 
   double get totalExpense => monthlyMasraf + employeePayments;
   double get profitLoss => monthlyCiro - monthlyMasraf - employeePayments;
   double get cashOnHand =>
-      monthlyCiro - monthlyMasraf - employeePayments - bankDeposits;
+      monthlyCiro - cashPaidMasraf - cashPaidEmployees - bankDeposits;
   double get remainingDebt => debtGiven - debtPaid;
+  double get personalPaidTotal => personalPaidMasraf + personalPaidEmployees;
+  double get bankPaidTotal => bankPaidMasraf + bankPaidEmployees;
+  double get cashPaidTotal => cashPaidMasraf + cashPaidEmployees;
 }
 
 class DailyTrend {
@@ -118,6 +133,12 @@ class ReportUtils {
     var bankDeposits = 0.0;
     var debtGiven = 0.0;
     var debtPaid = 0.0;
+    var cashPaidMasraf = 0.0;
+    var cashPaidEmployees = 0.0;
+    var personalPaidMasraf = 0.0;
+    var personalPaidEmployees = 0.0;
+    var bankPaidMasraf = 0.0;
+    var bankPaidEmployees = 0.0;
 
     for (final transaction in transactions) {
       if (transaction.type == TransactionTypes.ciro) {
@@ -129,6 +150,13 @@ class ReportUtils {
 
       if (transaction.type == TransactionTypes.masraf) {
         monthlyMasraf += transaction.amount;
+        if (transaction.paymentSource == PaymentSources.personal) {
+          personalPaidMasraf += transaction.amount;
+        } else if (transaction.paymentSource == PaymentSources.bank) {
+          bankPaidMasraf += transaction.amount;
+        } else {
+          cashPaidMasraf += transaction.amount;
+        }
         if (transaction.date == todayKey) {
           todayGider += transaction.amount;
         }
@@ -136,6 +164,13 @@ class ReportUtils {
 
       if (transaction.type == TransactionTypes.isci) {
         employeePayments += transaction.amount;
+        if (transaction.paymentSource == PaymentSources.personal) {
+          personalPaidEmployees += transaction.amount;
+        } else if (transaction.paymentSource == PaymentSources.bank) {
+          bankPaidEmployees += transaction.amount;
+        } else {
+          cashPaidEmployees += transaction.amount;
+        }
         if (transaction.date == todayKey) {
           todayGider += transaction.amount;
         }
@@ -163,6 +198,12 @@ class ReportUtils {
       bankDeposits: bankDeposits,
       debtGiven: debtGiven,
       debtPaid: debtPaid,
+      cashPaidMasraf: cashPaidMasraf,
+      cashPaidEmployees: cashPaidEmployees,
+      personalPaidMasraf: personalPaidMasraf,
+      personalPaidEmployees: personalPaidEmployees,
+      bankPaidMasraf: bankPaidMasraf,
+      bankPaidEmployees: bankPaidEmployees,
     );
   }
 
@@ -192,17 +233,14 @@ class ReportUtils {
       }
     }
 
-    return List.generate(
-      days,
-      (index) {
-        final day = index + 1;
-        return DailyTrend(
-          day: day,
-          ciro: ciroByDay[day] ?? 0,
-          gider: giderByDay[day] ?? 0,
-        );
-      },
-    );
+    return List.generate(days, (index) {
+      final day = index + 1;
+      return DailyTrend(
+        day: day,
+        ciro: ciroByDay[day] ?? 0,
+        gider: giderByDay[day] ?? 0,
+      );
+    });
   }
 
   static List<ExpenseCategorySummary> expenseCategories(
@@ -216,9 +254,8 @@ class ReportUtils {
       if (transaction.type != TransactionTypes.masraf) {
         continue;
       }
-      final category = AppCategories.expenseCategories.contains(
-        transaction.category,
-      )
+      final category =
+          AppCategories.expenseCategories.contains(transaction.category)
           ? transaction.category
           : 'Diğer';
       totals[category] = (totals[category] ?? 0) + transaction.amount;
@@ -274,11 +311,7 @@ class ReportUtils {
         continue;
       }
       summaries.add(
-        EmployeeSalarySummary(
-          name: entry.key,
-          salary: 0,
-          paid: entry.value,
-        ),
+        EmployeeSalarySummary(name: entry.key, salary: 0, paid: entry.value),
       );
     }
 

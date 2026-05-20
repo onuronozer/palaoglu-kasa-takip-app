@@ -6,10 +6,7 @@ import '../../../core/utils/report_utils.dart';
 import '../../dashboard/widgets/metric_card.dart';
 
 class ReportSummaryCards extends StatelessWidget {
-  const ReportSummaryCards({
-    required this.summary,
-    super.key,
-  });
+  const ReportSummaryCards({required this.summary, super.key});
 
   final FinancialSummary summary;
 
@@ -51,6 +48,24 @@ class ReportSummaryCards extends StatelessWidget {
         value: MoneyUtils.format(summary.cashOnHand),
         icon: Icons.account_balance_wallet_outlined,
         color: AppColors.turquoise,
+      ),
+      MetricCard(
+        title: 'Kasadan Ödenen',
+        value: MoneyUtils.format(summary.cashPaidTotal),
+        icon: Icons.point_of_sale_outlined,
+        color: AppColors.primary,
+      ),
+      MetricCard(
+        title: 'Şahsi Ödenen',
+        value: MoneyUtils.format(summary.personalPaidTotal),
+        icon: Icons.person_outline,
+        color: AppColors.warning,
+      ),
+      MetricCard(
+        title: 'Bankadan Ödenen',
+        value: MoneyUtils.format(summary.bankPaidTotal),
+        icon: Icons.account_balance_outlined,
+        color: AppColors.bank,
       ),
       MetricCard(
         title: 'Kalan Borç',

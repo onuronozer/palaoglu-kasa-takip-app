@@ -5,10 +5,7 @@ import '../../../core/utils/money_utils.dart';
 import '../../../core/utils/report_utils.dart';
 
 class TrendChartCard extends StatelessWidget {
-  const TrendChartCard({
-    required this.trends,
-    super.key,
-  });
+  const TrendChartCard({required this.trends, super.key});
 
   final List<DailyTrend> trends;
 
@@ -16,11 +13,8 @@ class TrendChartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final maxValue = trends.fold<double>(
       0,
-      (current, day) => [
-        current,
-        day.ciro,
-        day.gider,
-      ].reduce((a, b) => a > b ? a : b),
+      (current, day) =>
+          [current, day.ciro, day.gider].reduce((a, b) => a > b ? a : b),
     );
 
     return _ReportCard(
@@ -64,10 +58,7 @@ class TrendChartCard extends StatelessWidget {
 }
 
 class _DayBars extends StatelessWidget {
-  const _DayBars({
-    required this.trend,
-    required this.maxValue,
-  });
+  const _DayBars({required this.trend, required this.maxValue});
 
   final DailyTrend trend;
   final double maxValue;
@@ -88,9 +79,15 @@ class _DayBars extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _Bar(height: trend.ciro == 0 ? 4 : ciroHeight, color: AppColors.income),
+                _Bar(
+                  height: trend.ciro == 0 ? 4 : ciroHeight,
+                  color: AppColors.income,
+                ),
                 const SizedBox(width: 3),
-                _Bar(height: trend.gider == 0 ? 4 : giderHeight, color: AppColors.expense),
+                _Bar(
+                  height: trend.gider == 0 ? 4 : giderHeight,
+                  color: AppColors.expense,
+                ),
               ],
             ),
           ),
@@ -106,10 +103,7 @@ class _DayBars extends StatelessWidget {
 }
 
 class _Bar extends StatelessWidget {
-  const _Bar({
-    required this.height,
-    required this.color,
-  });
+  const _Bar({required this.height, required this.color});
 
   final double height;
   final Color color;
@@ -128,10 +122,7 @@ class _Bar extends StatelessWidget {
 }
 
 class _Legend extends StatelessWidget {
-  const _Legend({
-    required this.color,
-    required this.label,
-  });
+  const _Legend({required this.color, required this.label});
 
   final Color color;
   final String label;
@@ -154,10 +145,7 @@ class _Legend extends StatelessWidget {
 }
 
 class _ReportCard extends StatelessWidget {
-  const _ReportCard({
-    required this.title,
-    required this.child,
-  });
+  const _ReportCard({required this.title, required this.child});
 
   final String title;
   final Widget child;

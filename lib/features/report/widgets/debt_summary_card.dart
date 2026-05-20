@@ -5,10 +5,7 @@ import '../../../core/utils/money_utils.dart';
 import '../../../core/utils/report_utils.dart';
 
 class DebtSummaryCard extends StatelessWidget {
-  const DebtSummaryCard({
-    required this.debts,
-    super.key,
-  });
+  const DebtSummaryCard({required this.debts, super.key});
 
   final List<DebtPersonSummary> debts;
 

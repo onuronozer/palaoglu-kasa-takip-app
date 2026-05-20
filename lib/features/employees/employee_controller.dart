@@ -7,8 +7,8 @@ import '../../data/repositories/employee_repository.dart';
 
 final employeeControllerProvider =
     StateNotifierProvider<EmployeeController, AsyncValue<void>>((ref) {
-  return EmployeeController(ref.watch(employeeRepositoryProvider));
-});
+      return EmployeeController(ref.watch(employeeRepositoryProvider));
+    });
 
 class EmployeeController extends StateNotifier<AsyncValue<void>> {
   EmployeeController(this._repository) : super(const AsyncData(null));

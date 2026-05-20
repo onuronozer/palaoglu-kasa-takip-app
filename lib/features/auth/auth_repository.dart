@@ -12,10 +12,7 @@ class AuthRepository {
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     try {
       await _auth.signInWithEmailAndPassword(
         email: email.trim(),
@@ -24,7 +21,9 @@ class AuthRepository {
     } on FirebaseAuthException catch (error) {
       throw AuthFailure(_messageForCode(error.code));
     } catch (_) {
-      throw const AuthFailure('Giriş yapılamadı. İnternet bağlantısını kontrol edin.');
+      throw const AuthFailure(
+        'Giriş yapılamadı. İnternet bağlantısını kontrol edin.',
+      );
     }
   }
 

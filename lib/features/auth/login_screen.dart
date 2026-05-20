@@ -35,7 +35,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    final success = await ref.read(authControllerProvider.notifier).signIn(
+    final success = await ref
+        .read(authControllerProvider.notifier)
+        .signIn(
           email: _emailController.text,
           password: _passwordController.text,
         );
@@ -54,8 +56,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
     final authError = authState.error;
-    final errorMessage = _localError ??
-        (authError is AuthFailure ? authError.message : null);
+    final errorMessage =
+        _localError ?? (authError is AuthFailure ? authError.message : null);
 
     return Scaffold(
       body: SafeArea(

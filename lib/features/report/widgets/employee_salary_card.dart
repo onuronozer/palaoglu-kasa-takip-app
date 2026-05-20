@@ -7,10 +7,7 @@ import '../../../core/utils/money_utils.dart';
 import '../../../core/utils/report_utils.dart';
 
 class EmployeeSalaryCard extends StatelessWidget {
-  const EmployeeSalaryCard({
-    required this.employees,
-    super.key,
-  });
+  const EmployeeSalaryCard({required this.employees, super.key});
 
   final List<EmployeeSalarySummary> employees;
 
@@ -55,8 +52,8 @@ class _EmployeeSalaryLine extends StatelessWidget {
     final color = employee.isOverPaid
         ? AppColors.warning
         : employee.isComplete
-            ? AppColors.income
-            : AppColors.turquoise;
+        ? AppColors.income
+        : AppColors.turquoise;
     final progress = employee.salary <= 0
         ? (employee.paid > 0 ? 1.0 : 0.0)
         : math.min(employee.paid / employee.salary, 1.0);
@@ -78,7 +75,10 @@ class _EmployeeSalaryLine extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.14),
                   borderRadius: BorderRadius.circular(999),
@@ -109,8 +109,14 @@ class _EmployeeSalaryLine extends StatelessWidget {
             spacing: 12,
             runSpacing: 4,
             children: [
-              _SmallInfo(label: 'Barem', value: MoneyUtils.format(employee.salary)),
-              _SmallInfo(label: 'Ödenen', value: MoneyUtils.format(employee.paid)),
+              _SmallInfo(
+                label: 'Barem',
+                value: MoneyUtils.format(employee.salary),
+              ),
+              _SmallInfo(
+                label: 'Ödenen',
+                value: MoneyUtils.format(employee.paid),
+              ),
               if (employee.isOverPaid)
                 _SmallInfo(
                   label: 'Fazla',
@@ -121,7 +127,9 @@ class _EmployeeSalaryLine extends StatelessWidget {
                 _SmallInfo(
                   label: 'Kalan',
                   value: MoneyUtils.format(employee.remaining),
-                  color: employee.isComplete ? AppColors.income : AppColors.text,
+                  color: employee.isComplete
+                      ? AppColors.income
+                      : AppColors.text,
                 ),
             ],
           ),

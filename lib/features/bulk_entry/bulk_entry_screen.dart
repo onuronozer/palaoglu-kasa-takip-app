@@ -14,10 +14,7 @@ import '../auth/auth_controller.dart';
 import '../dashboard/widgets/month_selector.dart';
 
 class BulkEntryScreen extends ConsumerStatefulWidget {
-  const BulkEntryScreen({
-    this.initialMonthKey,
-    super.key,
-  });
+  const BulkEntryScreen({this.initialMonthKey, super.key});
 
   final String? initialMonthKey;
 
@@ -89,9 +86,8 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
                     onPrevious: () => _changeMonth(
                       AppDateUtils.previousMonth(_selectedMonth),
                     ),
-                    onNext: () => _changeMonth(
-                      AppDateUtils.nextMonth(_selectedMonth),
-                    ),
+                    onNext: () =>
+                        _changeMonth(AppDateUtils.nextMonth(_selectedMonth)),
                   ),
                   const SizedBox(height: 16),
                   _InfoCard(
@@ -109,9 +105,8 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
                   ),
                   const SizedBox(height: 16),
                   activeEmployees.when(
-                    loading: () => const _StateCard(
-                      message: 'Personeller yükleniyor...',
-                    ),
+                    loading: () =>
+                        const _StateCard(message: 'Personeller yükleniyor...'),
                     error: (_, __) => const _StateCard(
                       message: 'Personel listesi okunamadı.',
                     ),
@@ -175,8 +170,9 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
                           });
                         },
                         onChanged: () => setState(() {}),
-                        onSave:
-                            appUser == null ? null : () => _saveMixed(appUser),
+                        onSave: appUser == null
+                            ? null
+                            : () => _saveMixed(appUser),
                       );
                     },
                   ),
@@ -199,7 +195,11 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
         continue;
       }
 
-      final date = DateTime(_selectedMonth.year, _selectedMonth.month, index + 1);
+      final date = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month,
+        index + 1,
+      );
       transactions.add(
         TransactionModel(
           id: '',
@@ -223,13 +223,17 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
 
     setState(() => _isSavingCiro = true);
     try {
-      await ref.read(transactionRepositoryProvider).addTransactions(transactions);
+      await ref
+          .read(transactionRepositoryProvider)
+          .addTransactions(transactions);
       for (final controller in _ciroControllers) {
         controller.clear();
       }
       _showSnack('${transactions.length} ciro kaydı eklendi.');
     } catch (_) {
-      _showSnack('Toplu ciro kaydedilemedi. İnternet bağlantısını kontrol edin.');
+      _showSnack(
+        'Toplu ciro kaydedilemedi. İnternet bağlantısını kontrol edin.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isSavingCiro = false);
@@ -251,7 +255,11 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
         return;
       }
 
-      final date = DateTime(_selectedMonth.year, _selectedMonth.month, draft.day);
+      final date = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month,
+        draft.day,
+      );
       final description = draft.descriptionController.text.trim();
       transactions.add(
         TransactionModel(
@@ -262,8 +270,10 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
           category: AppCategories.isci,
           person: draft.employee!,
           amount: amount,
-          description:
-              description.isEmpty ? 'Toplu işçi ödemesi girişi' : description,
+          paymentSource: draft.paymentSource,
+          description: description.isEmpty
+              ? 'Toplu işçi ödemesi girişi'
+              : description,
           createdByUid: appUser.uid,
           createdByName: appUser.displayName,
         ),
@@ -277,7 +287,9 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
 
     setState(() => _isSavingEmployees = true);
     try {
-      await ref.read(transactionRepositoryProvider).addTransactions(transactions);
+      await ref
+          .read(transactionRepositoryProvider)
+          .addTransactions(transactions);
       setState(() {
         for (final draft in _employeeDrafts) {
           draft.dispose();
@@ -311,7 +323,11 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
         return;
       }
 
-      final date = DateTime(_selectedMonth.year, _selectedMonth.month, draft.day);
+      final date = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month,
+        draft.day,
+      );
       final description = draft.descriptionController.text.trim();
       transactions.add(
         TransactionModel(
@@ -322,6 +338,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
           category: draft.categoryForSave,
           person: draft.personForSave,
           amount: amount,
+          paymentSource: draft.paymentSourceForSave,
           description: description.isEmpty ? 'Toplu kayıt' : description,
           createdByUid: appUser.uid,
           createdByName: appUser.displayName,
@@ -336,7 +353,9 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
 
     setState(() => _isSavingMixed = true);
     try {
-      await ref.read(transactionRepositoryProvider).addTransactions(transactions);
+      await ref
+          .read(transactionRepositoryProvider)
+          .addTransactions(transactions);
       setState(() {
         for (final draft in _mixedDrafts) {
           draft.dispose();
@@ -363,12 +382,14 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
       }
       _buildCiroControllers();
       for (final draft in _employeeDrafts) {
-        draft.day =
-            draft.day.clamp(1, AppDateUtils.daysInMonth(_selectedMonth)).toInt();
+        draft.day = draft.day
+            .clamp(1, AppDateUtils.daysInMonth(_selectedMonth))
+            .toInt();
       }
       for (final draft in _mixedDrafts) {
-        draft.day =
-            draft.day.clamp(1, AppDateUtils.daysInMonth(_selectedMonth)).toInt();
+        draft.day = draft.day
+            .clamp(1, AppDateUtils.daysInMonth(_selectedMonth))
+            .toInt();
       }
     });
   }
@@ -392,17 +413,14 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
 class _InfoCard extends StatelessWidget {
-  const _InfoCard({
-    required this.title,
-    required this.message,
-  });
+  const _InfoCard({required this.title, required this.message});
 
   final String title;
   final String message;
@@ -514,7 +532,9 @@ class _CiroBulkCard extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: isSaving ? null : onSave,
             icon: const Icon(Icons.save_outlined),
-            label: Text(isSaving ? 'Kaydediliyor...' : 'Ciro Kayıtlarını Kaydet'),
+            label: Text(
+              isSaving ? 'Kaydediliyor...' : 'Ciro Kayıtlarını Kaydet',
+            ),
           ),
         ],
       ),
@@ -657,7 +677,10 @@ class _EmployeePaymentRow extends StatelessWidget {
               IconButton(
                 tooltip: 'Satırı kaldır',
                 onPressed: isSaving ? null : onRemove,
-                icon: const Icon(Icons.delete_outline, color: AppColors.expense),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.expense,
+                ),
               ),
             ],
           ),
@@ -670,7 +693,7 @@ class _EmployeePaymentRow extends StatelessWidget {
                   decoration: const InputDecoration(labelText: 'Gün'),
                   items: [
                     for (final day in days)
-                      DropdownMenuItem(value: day, child: Text('$day'))
+                      DropdownMenuItem(value: day, child: Text('$day')),
                   ],
                   onChanged: isSaving
                       ? null
@@ -691,7 +714,7 @@ class _EmployeePaymentRow extends StatelessWidget {
                   decoration: const InputDecoration(labelText: 'Personel'),
                   items: [
                     for (final employee in employees)
-                      DropdownMenuItem(value: employee, child: Text(employee))
+                      DropdownMenuItem(value: employee, child: Text(employee)),
                   ],
                   onChanged: isSaving
                       ? null
@@ -712,6 +735,15 @@ class _EmployeePaymentRow extends StatelessWidget {
               labelText: 'Tutar',
               prefixText: '₺ ',
             ),
+          ),
+          const SizedBox(height: 10),
+          _PaymentSourceDropdown(
+            value: draft.paymentSource,
+            enabled: !isSaving,
+            onChanged: (value) {
+              draft.paymentSource = value;
+              onChanged();
+            },
           ),
           const SizedBox(height: 10),
           TextField(
@@ -807,7 +839,9 @@ class _MixedBulkCard extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: isSaving ? null : onSave,
             icon: const Icon(Icons.save_outlined),
-            label: Text(isSaving ? 'Kaydediliyor...' : 'Toplu İşlemleri Kaydet'),
+            label: Text(
+              isSaving ? 'Kaydediliyor...' : 'Toplu İşlemleri Kaydet',
+            ),
           ),
         ],
       ),
@@ -860,7 +894,10 @@ class _MixedTransactionRow extends StatelessWidget {
               IconButton(
                 tooltip: 'Satırı kaldır',
                 onPressed: isSaving ? null : onRemove,
-                icon: const Icon(Icons.delete_outline, color: AppColors.expense),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.expense,
+                ),
               ),
             ],
           ),
@@ -873,7 +910,7 @@ class _MixedTransactionRow extends StatelessWidget {
                   decoration: const InputDecoration(labelText: 'Gün'),
                   items: [
                     for (final day in days)
-                      DropdownMenuItem(value: day, child: Text('$day'))
+                      DropdownMenuItem(value: day, child: Text('$day')),
                   ],
                   onChanged: isSaving
                       ? null
@@ -934,7 +971,7 @@ class _MixedTransactionRow extends StatelessWidget {
               decoration: const InputDecoration(labelText: 'Kategori'),
               items: [
                 for (final category in AppCategories.expenseCategories)
-                  DropdownMenuItem(value: category, child: Text(category))
+                  DropdownMenuItem(value: category, child: Text(category)),
               ],
               onChanged: isSaving
                   ? null
@@ -949,7 +986,7 @@ class _MixedTransactionRow extends StatelessWidget {
               decoration: const InputDecoration(labelText: 'Personel'),
               items: [
                 for (final employee in employees)
-                  DropdownMenuItem(value: employee, child: Text(employee))
+                  DropdownMenuItem(value: employee, child: Text(employee)),
               ],
               onChanged: isSaving
                   ? null
@@ -958,6 +995,18 @@ class _MixedTransactionRow extends StatelessWidget {
                       onChanged();
                     },
             ),
+          if (draft.type == TransactionTypes.masraf ||
+              draft.type == TransactionTypes.isci) ...[
+            const SizedBox(height: 10),
+            _PaymentSourceDropdown(
+              value: draft.paymentSource,
+              enabled: !isSaving,
+              onChanged: (value) {
+                draft.paymentSource = value;
+                onChanged();
+              },
+            ),
+          ],
           if (draft.type == TransactionTypes.borc) ...[
             DropdownButtonFormField<String>(
               value: draft.category,
@@ -1037,13 +1086,11 @@ class _StateCard extends StatelessWidget {
 }
 
 class _EmployeePaymentDraft {
-  _EmployeePaymentDraft({
-    required this.day,
-    this.employee,
-  });
+  _EmployeePaymentDraft({required this.day, this.employee});
 
   int day;
   String? employee;
+  String paymentSource = PaymentSources.cash;
   final amountController = TextEditingController();
   final descriptionController = TextEditingController(
     text: 'Toplu işçi ödemesi',
@@ -1062,6 +1109,7 @@ class _MixedTransactionDraft {
   String type = TransactionTypes.masraf;
   String? category = AppCategories.expenseCategories.first;
   String? employee;
+  String paymentSource = PaymentSources.cash;
   final personController = TextEditingController();
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -1074,22 +1122,27 @@ class _MixedTransactionDraft {
     switch (value) {
       case TransactionTypes.ciro:
         category = AppCategories.ciro;
+        paymentSource = PaymentSources.cash;
         descriptionController.text = 'Toplu ciro';
         break;
       case TransactionTypes.masraf:
         category = AppCategories.expenseCategories.first;
+        paymentSource = PaymentSources.cash;
         descriptionController.text = 'Toplu masraf';
         break;
       case TransactionTypes.isci:
         category = AppCategories.isci;
+        paymentSource = PaymentSources.cash;
         descriptionController.text = 'Toplu işçi ödemesi';
         break;
       case TransactionTypes.banka:
         category = AppCategories.banka;
+        paymentSource = PaymentSources.cash;
         descriptionController.text = 'Toplu bankaya yatan';
         break;
       case TransactionTypes.borc:
         category = AppCategories.debtGiven;
+        paymentSource = PaymentSources.cash;
         descriptionController.text = 'Toplu borç / alacak';
         break;
     }
@@ -1122,6 +1175,13 @@ class _MixedTransactionDraft {
     return '';
   }
 
+  String get paymentSourceForSave {
+    if (type == TransactionTypes.masraf || type == TransactionTypes.isci) {
+      return paymentSource;
+    }
+    return PaymentSources.cash;
+  }
+
   String? validate() {
     if (type == TransactionTypes.masraf &&
         (category == null || category!.isEmpty)) {
@@ -1149,5 +1209,40 @@ class _MixedTransactionDraft {
     personController.dispose();
     amountController.dispose();
     descriptionController.dispose();
+  }
+}
+
+class _PaymentSourceDropdown extends StatelessWidget {
+  const _PaymentSourceDropdown({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String value;
+  final bool enabled;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: const InputDecoration(labelText: 'Ödeme kaynağı'),
+      items: [
+        for (final source in PaymentSources.all)
+          DropdownMenuItem(
+            value: source,
+            child: Text(PaymentSources.label(source)),
+          ),
+      ],
+      onChanged: enabled
+          ? (value) {
+              if (value == null) {
+                return;
+              }
+              onChanged(value);
+            }
+          : null,
+    );
   }
 }

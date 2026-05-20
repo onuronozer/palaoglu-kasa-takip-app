@@ -16,6 +16,7 @@ class DeletedTransactionModel {
     required this.description,
     required this.createdByUid,
     required this.createdByName,
+    required this.paymentSource,
     required this.deletedByUid,
     required this.deletedByName,
     this.deletedAt,
@@ -33,6 +34,7 @@ class DeletedTransactionModel {
   final String description;
   final String createdByUid;
   final String createdByName;
+  final String paymentSource;
   final String deletedByUid;
   final String deletedByName;
   final DateTime? deletedAt;
@@ -55,6 +57,7 @@ class DeletedTransactionModel {
       description: transaction.description,
       createdByUid: transaction.createdByUid,
       createdByName: transaction.createdByName,
+      paymentSource: transaction.paymentSource,
       deletedByUid: deletedBy.uid,
       deletedByName: deletedBy.displayName,
       originalCreatedAt: transaction.createdAt,
@@ -74,6 +77,7 @@ class DeletedTransactionModel {
       'description': description,
       'createdByUid': createdByUid,
       'createdByName': createdByName,
+      'paymentSource': paymentSource,
       'deletedByUid': deletedByUid,
       'deletedByName': deletedByName,
       'deletedAt': FieldValue.serverTimestamp(),

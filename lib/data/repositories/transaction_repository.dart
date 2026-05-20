@@ -12,8 +12,13 @@ final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
 
 final transactionsByMonthProvider =
     StreamProvider.family<List<TransactionModel>, String>((ref, monthKey) {
-  return ref.watch(transactionRepositoryProvider).watchByMonth(monthKey);
-});
+      return ref.watch(transactionRepositoryProvider).watchByMonth(monthKey);
+    });
+
+final transactionByIdProvider =
+    StreamProvider.family<TransactionModel?, String>((ref, transactionId) {
+      return ref.watch(transactionRepositoryProvider).watchById(transactionId);
+    });
 
 class TransactionRepository {
   TransactionRepository(this._firestore);
@@ -27,26 +32,34 @@ class TransactionRepository {
       _firestore.collection('deleted_transactions');
 
   Stream<List<TransactionModel>> watchByMonth(String monthKey) {
-    return _transactions
-        .where('monthKey', isEqualTo: monthKey)
-        .snapshots()
-        .map((snapshot) {
-      final items = snapshot.docs
-          .map(TransactionModel.fromDoc)
-          .where((transaction) => transaction.status == 'active')
-          .toList();
+    return _transactions.where('monthKey', isEqualTo: monthKey).snapshots().map(
+      (snapshot) {
+        final items = snapshot.docs
+            .map(TransactionModel.fromDoc)
+            .where((transaction) => transaction.status == 'active')
+            .toList();
 
-      items.sort((a, b) {
-        final byDate = b.date.compareTo(a.date);
-        if (byDate != 0) {
-          return byDate;
-        }
-        final aCreatedAt = a.createdAt ?? DateTime(1900);
-        final bCreatedAt = b.createdAt ?? DateTime(1900);
-        return bCreatedAt.compareTo(aCreatedAt);
-      });
+        items.sort((a, b) {
+          final byDate = b.date.compareTo(a.date);
+          if (byDate != 0) {
+            return byDate;
+          }
+          final aCreatedAt = a.createdAt ?? DateTime(1900);
+          final bCreatedAt = b.createdAt ?? DateTime(1900);
+          return bCreatedAt.compareTo(aCreatedAt);
+        });
 
-      return items;
+        return items;
+      },
+    );
+  }
+
+  Stream<TransactionModel?> watchById(String transactionId) {
+    return _transactions.doc(transactionId).snapshots().map((doc) {
+      if (!doc.exists) {
+        return null;
+      }
+      return TransactionModel.fromDoc(doc);
     });
   }
 
@@ -71,6 +84,10 @@ class TransactionRepository {
     }
 
     await batch.commit();
+  }
+
+  Future<void> updateTransaction(TransactionModel transaction) async {
+    await _transactions.doc(transaction.id).update(transaction.toUpdateMap());
   }
 
   Future<void> deleteTransaction({

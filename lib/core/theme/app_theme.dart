@@ -94,10 +94,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(

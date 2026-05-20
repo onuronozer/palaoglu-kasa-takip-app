@@ -258,3 +258,71 @@ firebase deploy --only firestore:rules
 18. İşçi ödemelerinin progress görünümünü kontrol et.
 19. WhatsApp Ay Özeti Gönder butonuyla WhatsApp bağlantısının açıldığını kontrol et.
 20. `flutter build web --release` komutunun başarılı olduğunu kontrol et.
+
+## Güncelleme Yayınlama
+
+Kodda değişiklik yapıldıktan sonra GitHub Desktop içinde:
+
+1. Değişiklikleri kontrol et.
+2. Summary alanına kısa açıklama yaz.
+3. `Commit to main` bas.
+4. `Push origin` bas.
+5. GitHub `Actions` sekmesinde yeşil tik gelmesini bekle.
+
+Yayın adresi:
+
+```text
+https://onuronozer.github.io/palaoglu-kasa-takip-app/
+```
+
+## Ödeme Kaynağı Mantığı
+
+Masraf ve işçi ödemelerinde ödeme kaynağı seçilir:
+
+```text
+Kasadan Ödendi
+Şahsi Hesaptan Ödendi
+Bankadan Ödendi
+```
+
+Hesaplama:
+
+- Aylık Masraf: tüm masrafları toplar.
+- İşçi Ödemeleri: tüm işçi ödemelerini toplar.
+- Kar / Zarar: cirodan tüm masraf ve işçi ödemelerini düşer.
+- Kasa Nakit: cirodan sadece kasadan ödenen masraf ve işçi ödemelerini, ayrıca bankaya yatanı düşer.
+
+Örnek:
+
+```text
+Ciro: 10.000 TL
+Elektrik: 2.000 TL, Şahsi Hesaptan Ödendi
+
+Aylık Masraf: 2.000 TL
+Kar / Zarar: 8.000 TL
+Kasa Nakit: 10.000 TL
+```
+
+Eski kayıtlar ödeme kaynağı alanı boşsa otomatik `Kasadan Ödendi` kabul edilir.
+
+## Kayıt Dökümü ve Düzeltme
+
+Ana ekrandaki `Kayıt Dökümü` ekranından seçili ay kayıtları görülebilir:
+
+```text
+Ciro
+Masraf
+İşçi
+Banka
+Borç / Alacak
+```
+
+Her kayıtta tarih, kategori/kişi, açıklama, tutar, kaydeden ve ödeme kaynağı görünür. `Düzenle` butonuyla yanlış girilen tarih, tutar, kategori, kişi, açıklama veya ödeme kaynağı düzeltilebilir.
+
+## Toplu Giriş
+
+Ana ekrandaki `Toplu Giriş` ekranında:
+
+- Günlük ciro tutarları gün gün yazılabilir.
+- İşçi ödemeleri satır satır eklenebilir.
+- Karışık toplu giriş ile ciro, masraf, işçi, banka, borç/alacak kayıtları aynı ekranda tek seferde kaydedilebilir.

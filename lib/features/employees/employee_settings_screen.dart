@@ -84,7 +84,9 @@ class _EmployeeSettingsScreenState
                   ),
                   const SizedBox(height: 16),
                   employeesState.when(
-                    loading: () => const _LoadingCard(message: 'Personeller yükleniyor...'),
+                    loading: () => const _LoadingCard(
+                      message: 'Personeller yükleniyor...',
+                    ),
                     error: (_, __) => const _LoadingCard(
                       message: 'Personel listesi okunamadı.',
                     ),
@@ -106,7 +108,9 @@ class _EmployeeSettingsScreenState
   }
 
   Future<void> _addEmployee(AppUser appUser) async {
-    final success = await ref.read(employeeControllerProvider.notifier).addEmployee(
+    final success = await ref
+        .read(employeeControllerProvider.notifier)
+        .addEmployee(
           name: _nameController.text,
           salaryText: _salaryController.text,
           updatedBy: appUser,
@@ -124,9 +128,9 @@ class _EmployeeSettingsScreenState
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -155,7 +159,10 @@ class _AddEmployeeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Yeni personel ekle', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Yeni personel ekle',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 14),
           TextField(
             controller: nameController,
@@ -309,7 +316,9 @@ class _EmployeeTile extends ConsumerWidget {
                 onChanged: isLoading
                     ? null
                     : (value) {
-                        ref.read(employeeControllerProvider.notifier).setActive(
+                        ref
+                            .read(employeeControllerProvider.notifier)
+                            .setActive(
                               employee: employee,
                               active: value,
                               updatedBy: appUser,
@@ -404,7 +413,9 @@ class _EmployeeTile extends ConsumerWidget {
       return;
     }
 
-    final success = await ref.read(employeeControllerProvider.notifier).updateSalary(
+    final success = await ref
+        .read(employeeControllerProvider.notifier)
+        .updateSalary(
           employee: employee,
           salaryText: salaryText,
           updatedBy: appUser,

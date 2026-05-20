@@ -16,10 +16,7 @@ import 'widgets/report_summary_cards.dart';
 import 'widgets/trend_chart_card.dart';
 
 class ReportScreen extends ConsumerStatefulWidget {
-  const ReportScreen({
-    this.initialMonthKey,
-    super.key,
-  });
+  const ReportScreen({this.initialMonthKey, super.key});
 
   final String? initialMonthKey;
 
@@ -65,8 +62,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     selectedMonth: _selectedMonth,
                     onPrevious: () {
                       setState(() {
-                        _selectedMonth =
-                            AppDateUtils.previousMonth(_selectedMonth);
+                        _selectedMonth = AppDateUtils.previousMonth(
+                          _selectedMonth,
+                        );
                       });
                     },
                     onNext: () {
@@ -77,7 +75,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                   ),
                   const SizedBox(height: 16),
                   transactionsState.when(
-                    loading: () => const _LoadingCard(message: 'Rapor hazırlanıyor...'),
+                    loading: () =>
+                        const _LoadingCard(message: 'Rapor hazırlanıyor...'),
                     error: (_, __) => const _LoadingCard(
                       message:
                           'Rapor alınamadı. İnternet bağlantısını kontrol edin.',
@@ -97,9 +96,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                           );
                           final employeeSummaries =
                               ReportUtils.employeeSalarySummaries(
-                            employees,
-                            transactions,
-                          );
+                                employees,
+                                transactions,
+                              );
                           final debts = ReportUtils.debtByPerson(transactions);
 
                           return Column(
@@ -110,10 +109,10 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                                 onWhatsapp: () async {
                                   final opened =
                                       await WhatsAppUtils.openMonthlySummary(
-                                    monthLabel: monthLabel,
-                                    summary: summary,
-                                    employeeSummaries: employeeSummaries,
-                                  );
+                                        monthLabel: monthLabel,
+                                        summary: summary,
+                                        employeeSummaries: employeeSummaries,
+                                      );
                                   if (!mounted) {
                                     return;
                                   }
@@ -164,10 +163,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 }
 
 class _ReportHeader extends StatelessWidget {
-  const _ReportHeader({
-    required this.monthLabel,
-    required this.onWhatsapp,
-  });
+  const _ReportHeader({required this.monthLabel, required this.onWhatsapp});
 
   final String monthLabel;
   final VoidCallback onWhatsapp;
@@ -184,7 +180,10 @@ class _ReportHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$monthLabel Rapor', style: Theme.of(context).textTheme.headlineMedium),
+          Text(
+            '$monthLabel Rapor',
+            style: Theme.of(context).textTheme.headlineMedium,
+          ),
           const SizedBox(height: 8),
           const Text(
             'Aylık ciro, gider, kasa, borç ve maaş baremi görünümü.',
