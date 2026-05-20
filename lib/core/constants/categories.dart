@@ -37,11 +37,12 @@ class AppCategories {
   static const isci = 'İşçi Ödemesi';
   static const komisyon = 'İşletme Ortağı';
   static const banka = 'Bankaya Yatan';
+  static const creditCard = 'Kredi Kartı';
 
   static const expenseCategories = [
     'Kira',
     'Muhasebe',
-    'Kredi Kartı',
+    creditCard,
     'Genel Masraf',
     'Diğer',
   ];
@@ -77,7 +78,7 @@ class PaymentSources {
       case personal:
         return 'Şahsi Hesaptan Ödendi';
       case bank:
-        return 'Bankadan Ödendi';
+        return 'Kredi Kartı';
       default:
         return 'Kasadan Ödendi';
     }

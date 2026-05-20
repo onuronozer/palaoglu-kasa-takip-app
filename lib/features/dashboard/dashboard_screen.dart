@@ -253,6 +253,11 @@ class _Header extends ConsumerWidget {
               ),
               const Spacer(),
               TextButton.icon(
+                onPressed: () => context.go('/farm'),
+                icon: const Icon(Icons.agriculture_outlined, size: 18),
+                label: const Text('Tarım'),
+              ),
+              TextButton.icon(
                 onPressed: () {
                   ref.read(authControllerProvider.notifier).signOut();
                 },

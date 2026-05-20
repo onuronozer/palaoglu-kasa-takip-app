@@ -29,9 +29,11 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     text: 'Toplu ciro girişi',
   );
   final List<_EmployeePaymentDraft> _employeeDrafts = [];
+  final List<_CreditCardExpenseDraft> _creditCardDrafts = [];
   final List<_MixedTransactionDraft> _mixedDrafts = [];
   bool _isSavingCiro = false;
   bool _isSavingEmployees = false;
+  bool _isSavingCreditCard = false;
   bool _isSavingMixed = false;
 
   @override
@@ -40,6 +42,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     _selectedMonth = AppDateUtils.monthFromKey(widget.initialMonthKey);
     _buildCiroControllers();
     _employeeDrafts.add(_EmployeePaymentDraft(day: _defaultDay()));
+    _creditCardDrafts.add(_CreditCardExpenseDraft(day: _defaultDay()));
     _mixedDrafts.add(_MixedTransactionDraft(day: _defaultDay()));
   }
 
@@ -50,6 +53,9 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     }
     _ciroDescriptionController.dispose();
     for (final draft in _employeeDrafts) {
+      draft.dispose();
+    }
+    for (final draft in _creditCardDrafts) {
       draft.dispose();
     }
     for (final draft in _mixedDrafts) {
@@ -93,7 +99,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
                   _InfoCard(
                     title: 'Toplu kayıt',
                     message:
-                        'Ciroda sadece tutar yazılan günler kaydedilir. İşçi ödemelerinde satır ekleyip personel, gün ve tutar seçebilirsin.',
+                        'Ciroda sadece tutar yazılan günler kaydedilir. İşçi, işletme ortağı ve kredi kartı harcamalarında satır ekleyebilirsin.',
                   ),
                   const SizedBox(height: 16),
                   _CiroBulkCard(
@@ -102,6 +108,34 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
                     descriptionController: _ciroDescriptionController,
                     isSaving: _isSavingCiro,
                     onSave: appUser == null ? null : () => _saveCiro(appUser),
+                  ),
+                  const SizedBox(height: 16),
+                  _CreditCardBulkCard(
+                    selectedMonth: _selectedMonth,
+                    drafts: _creditCardDrafts,
+                    isSaving: _isSavingCreditCard,
+                    onAddRow: () {
+                      setState(() {
+                        _creditCardDrafts.add(
+                          _CreditCardExpenseDraft(day: _defaultDay()),
+                        );
+                      });
+                    },
+                    onRemoveRow: (index) {
+                      setState(() {
+                        final removed = _creditCardDrafts.removeAt(index);
+                        removed.dispose();
+                        if (_creditCardDrafts.isEmpty) {
+                          _creditCardDrafts.add(
+                            _CreditCardExpenseDraft(day: _defaultDay()),
+                          );
+                        }
+                      });
+                    },
+                    onChanged: () => setState(() {}),
+                    onSave: appUser == null
+                        ? null
+                        : () => _saveCreditCardExpenses(appUser),
                   ),
                   const SizedBox(height: 16),
                   activeEmployees.when(
@@ -316,6 +350,68 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     }
   }
 
+  Future<void> _saveCreditCardExpenses(AppUser appUser) async {
+    final transactions = <TransactionModel>[];
+
+    for (final draft in _creditCardDrafts) {
+      final amount = MoneyUtils.parse(draft.amountController.text);
+      if (amount <= 0) {
+        continue;
+      }
+
+      final date = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month,
+        draft.day,
+      );
+      final description = draft.descriptionController.text.trim();
+      transactions.add(
+        TransactionModel(
+          id: '',
+          date: AppDateUtils.dateKey(date),
+          monthKey: AppDateUtils.monthKey(date),
+          type: TransactionTypes.masraf,
+          category: AppCategories.creditCard,
+          person: '',
+          amount: amount,
+          paymentSource: PaymentSources.bank,
+          description: description.isEmpty
+              ? 'Kredi kartı harcaması'
+              : description,
+          createdByUid: appUser.uid,
+          createdByName: appUser.displayName,
+        ),
+      );
+    }
+
+    if (transactions.isEmpty) {
+      _showSnack('Kaydedilecek kredi kartı harcaması yok.');
+      return;
+    }
+
+    setState(() => _isSavingCreditCard = true);
+    try {
+      await ref
+          .read(transactionRepositoryProvider)
+          .addTransactions(transactions);
+      setState(() {
+        for (final draft in _creditCardDrafts) {
+          draft.dispose();
+        }
+        _creditCardDrafts
+          ..clear()
+          ..add(_CreditCardExpenseDraft(day: _defaultDay()));
+      });
+      _showSnack('${transactions.length} kredi kartı harcaması eklendi.');
+    } catch (_) {
+      _showSnack('Kredi kartı harcamaları kaydedilemedi.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingCreditCard = false);
+      }
+    }
+  }
+
   Future<void> _saveMixed(AppUser appUser) async {
     final transactions = <TransactionModel>[];
 
@@ -390,6 +486,11 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
       }
       _buildCiroControllers();
       for (final draft in _employeeDrafts) {
+        draft.day = draft.day
+            .clamp(1, AppDateUtils.daysInMonth(_selectedMonth))
+            .toInt();
+      }
+      for (final draft in _creditCardDrafts) {
         draft.day = draft.day
             .clamp(1, AppDateUtils.daysInMonth(_selectedMonth))
             .toInt();
@@ -765,6 +866,229 @@ class _EmployeePaymentRow extends StatelessWidget {
   }
 }
 
+class _CreditCardBulkCard extends StatelessWidget {
+  const _CreditCardBulkCard({
+    required this.selectedMonth,
+    required this.drafts,
+    required this.isSaving,
+    required this.onAddRow,
+    required this.onRemoveRow,
+    required this.onChanged,
+    required this.onSave,
+  });
+
+  final DateTime selectedMonth;
+  final List<_CreditCardExpenseDraft> drafts;
+  final bool isSaving;
+  final VoidCallback onAddRow;
+  final ValueChanged<int> onRemoveRow;
+  final VoidCallback onChanged;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final days = List.generate(
+      AppDateUtils.daysInMonth(selectedMonth),
+      (index) => index + 1,
+    );
+    final total = drafts.fold<double>(
+      0,
+      (sum, draft) => sum + MoneyUtils.parse(draft.amountController.text),
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Kredi Kartı Harcamaları',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Satır ekle',
+                onPressed: isSaving ? null : onAddRow,
+                icon: const Icon(Icons.add_circle_outline),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Mobil bankacılıktaki kredi kartı kalemlerini buraya yaz; toplamı uygulama hesaplar.',
+            style: TextStyle(color: AppColors.mutedText, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          for (var index = 0; index < drafts.length; index++)
+            _CreditCardExpenseRow(
+              draft: drafts[index],
+              days: days,
+              index: index,
+              isSaving: isSaving,
+              onRemove: () => onRemoveRow(index),
+              onChanged: onChanged,
+            ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceAlt,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Toplam Kredi Kartı',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Text(
+                  MoneyUtils.format(total),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: isSaving ? null : onAddRow,
+            icon: const Icon(Icons.add),
+            label: const Text('Satır Ekle'),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: isSaving ? null : onSave,
+            icon: const Icon(Icons.save_outlined),
+            label: Text(
+              isSaving ? 'Kaydediliyor...' : 'Kredi Kartını Kaydet',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CreditCardExpenseRow extends StatelessWidget {
+  const _CreditCardExpenseRow({
+    required this.draft,
+    required this.days,
+    required this.index,
+    required this.isSaving,
+    required this.onRemove,
+    required this.onChanged,
+  });
+
+  final _CreditCardExpenseDraft draft;
+  final List<int> days;
+  final int index;
+  final bool isSaving;
+  final VoidCallback onRemove;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${index + 1}. harcama',
+                  style: const TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Satırı kaldır',
+                onPressed: isSaving ? null : onRemove,
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.expense,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  value: draft.day,
+                  decoration: const InputDecoration(labelText: 'Gün'),
+                  items: [
+                    for (final day in days)
+                      DropdownMenuItem(value: day, child: Text('$day')),
+                  ],
+                  onChanged: isSaving
+                      ? null
+                      : (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          draft.day = value;
+                          onChanged();
+                        },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: draft.amountController,
+                  enabled: !isSaving,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (_) => onChanged(),
+                  decoration: const InputDecoration(
+                    labelText: 'Tutar',
+                    prefixText: '₺ ',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: draft.descriptionController,
+            enabled: !isSaving,
+            decoration: const InputDecoration(
+              labelText: 'Açıklama',
+              prefixIcon: Icon(Icons.notes_outlined),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MixedBulkCard extends StatelessWidget {
   const _MixedBulkCard({
     required this.selectedMonth,
@@ -1106,6 +1430,19 @@ class _EmployeePaymentDraft {
   final descriptionController = TextEditingController(
     text: 'Toplu işçi ödemesi',
   );
+
+  void dispose() {
+    amountController.dispose();
+    descriptionController.dispose();
+  }
+}
+
+class _CreditCardExpenseDraft {
+  _CreditCardExpenseDraft({required this.day});
+
+  int day;
+  final amountController = TextEditingController();
+  final descriptionController = TextEditingController();
 
   void dispose() {
     amountController.dispose();

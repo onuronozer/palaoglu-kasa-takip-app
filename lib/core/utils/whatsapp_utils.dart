@@ -35,7 +35,7 @@ class WhatsAppUtils {
       ..writeln('Kasa Nakit: ${MoneyUtils.format(summary.cashOnHand)}')
       ..writeln('Kasadan Ödenen: ${MoneyUtils.format(summary.cashPaidTotal)}')
       ..writeln('Şahsi Ödenen: ${MoneyUtils.format(summary.personalPaidTotal)}')
-      ..writeln('Bankadan Ödenen: ${MoneyUtils.format(summary.bankPaidTotal)}')
+      ..writeln('Kredi Kartı: ${MoneyUtils.format(summary.bankPaidTotal)}')
       ..writeln('Kalan Borç: ${MoneyUtils.format(summary.remainingDebt)}')
       ..writeln()
       ..writeln('İşçi Ödemeleri:');

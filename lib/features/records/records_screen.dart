@@ -6,8 +6,10 @@ import '../../core/constants/categories.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/money_utils.dart';
+import '../../data/models/app_user.dart';
 import '../../data/models/transaction_model.dart';
 import '../../data/repositories/transaction_repository.dart';
+import '../auth/auth_controller.dart';
 import '../dashboard/widgets/month_selector.dart';
 
 class RecordsScreen extends ConsumerStatefulWidget {
@@ -31,6 +33,7 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appUser = ref.watch(currentAppUserProvider).valueOrNull;
     final monthKey = AppDateUtils.monthKey(_selectedMonth);
     final transactionsState = ref.watch(transactionsByMonthProvider(monthKey));
 
@@ -90,6 +93,13 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                       return _RecordsList(
                         records: filtered,
                         monthKey: monthKey,
+                        onDelete: (transaction) {
+                          if (appUser == null) {
+                            _showSnack('Bu işlem için yetkiniz yok');
+                            return;
+                          }
+                          _confirmDelete(transaction, appUser);
+                        },
                       );
                     },
                   ),
@@ -100,6 +110,81 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(
+    TransactionModel transaction,
+    AppUser appUser,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text('Kaydı sil'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Bu kayıt silinmeden önce arşive taşınacak.',
+                style: TextStyle(color: AppColors.mutedText),
+              ),
+              const SizedBox(height: 14),
+              _DialogLine(label: 'Tarih', value: transaction.date),
+              _DialogLine(label: 'İşlem', value: transaction.typeLabel),
+              _DialogLine(
+                label: 'Tutar',
+                value: MoneyUtils.format(transaction.amount),
+              ),
+              _DialogLine(
+                label: 'Açıklama',
+                value: transaction.description.isEmpty
+                    ? '-'
+                    : transaction.description,
+              ),
+              _DialogLine(label: 'Kaydeden', value: transaction.createdByName),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Vazgeç'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.expense,
+                foregroundColor: AppColors.text,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Sil'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true) {
+      return;
+    }
+
+    try {
+      await ref
+          .read(transactionRepositoryProvider)
+          .deleteTransaction(transaction: transaction, deletedBy: appUser);
+      _showSnack('Kayıt silindi ve arşive taşındı.');
+    } catch (_) {
+      _showSnack('Kayıt silinemedi. İnternet bağlantısını kontrol edin.');
+    }
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -157,10 +242,15 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _RecordsList extends StatelessWidget {
-  const _RecordsList({required this.records, required this.monthKey});
+  const _RecordsList({
+    required this.records,
+    required this.monthKey,
+    required this.onDelete,
+  });
 
   final List<TransactionModel> records;
   final String monthKey;
+  final ValueChanged<TransactionModel> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -171,17 +261,26 @@ class _RecordsList extends StatelessWidget {
     return Column(
       children: [
         for (final record in records)
-          _RecordCard(record: record, monthKey: monthKey),
+          _RecordCard(
+            record: record,
+            monthKey: monthKey,
+            onDelete: () => onDelete(record),
+          ),
       ],
     );
   }
 }
 
 class _RecordCard extends StatelessWidget {
-  const _RecordCard({required this.record, required this.monthKey});
+  const _RecordCard({
+    required this.record,
+    required this.monthKey,
+    required this.onDelete,
+  });
 
   final TransactionModel record;
   final String monthKey;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -257,12 +356,27 @@ class _RecordCard extends StatelessWidget {
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                context.push('/edit/${record.id}?month=$monthKey');
-              },
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text('Düzenle'),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () {
+                    context.push('/edit/${record.id}?month=$monthKey');
+                  },
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Düzenle'),
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.expense,
+                    side: BorderSide(color: AppColors.expense.withOpacity(0.6)),
+                  ),
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: const Text('Sil'),
+                ),
+              ],
             ),
           ),
         ],
@@ -334,6 +448,41 @@ class _DetailLine extends StatelessWidget {
               style: const TextStyle(
                 color: AppColors.text,
                 fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DialogLine extends StatelessWidget {
+  const _DialogLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 82,
+            child: Text(
+              label,
+              style: const TextStyle(color: AppColors.mutedText),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.text,
                 fontWeight: FontWeight.w700,
               ),
             ),

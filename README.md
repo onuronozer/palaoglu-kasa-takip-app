@@ -284,7 +284,7 @@ Masraf, işçi ödemesi ve işletme ortağı ödemelerinde ödeme kaynağı seç
 ```text
 Kasadan Ödendi
 Şahsi Hesaptan Ödendi
-Bankadan Ödendi
+Kredi Kartı
 ```
 
 Hesaplama:
@@ -295,7 +295,8 @@ Hesaplama:
 - İşletme Ortağı: Kar / Zarar pozitifse yarısını gösterir, karı tekrar düşmez.
 - Ortağa Ödenen: İşçi Ödemesi ekranında İşletme Ortağı seçilerek girilen ara/tam ödemeleri toplar.
 - Ortak Kalan: işletme ortağı hakedişinden ödenen tutarı düşer.
-- Kasa Nakit: cirodan sadece kasadan ödenen masraf, işçi ödemesi ve işletme ortağı ödemesini, ayrıca bankaya yatanı düşer.
+- Kredi Kartı: kârdan düşer ama kasa nakitten düşmez.
+- Kasa Nakit: cirodan sadece kasadan ödenen masraf, işçi ödemesi ve işletme ortağı ödemesini, ayrıca bankaya yatanı düşer. Kredi kartı ve şahsi ödemeler kasa nakitten düşmez.
 
 Örnek:
 
@@ -339,6 +340,7 @@ Ana ekrandaki `Toplu Giriş` ekranında:
 
 - Günlük ciro tutarları gün gün yazılabilir.
 - İşçi ödemeleri satır satır eklenebilir.
+- Kredi kartı harcamaları satır satır girilebilir ve toplamı otomatik hesaplanır.
 - Karışık toplu giriş ile ciro, masraf, işçi, işletme ortağı, banka, borç/alacak kayıtları aynı ekranda tek seferde kaydedilebilir.
 
 ## Palaoğlu Tarım Modülü

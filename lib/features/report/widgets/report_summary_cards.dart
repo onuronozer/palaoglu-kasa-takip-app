@@ -85,9 +85,9 @@ class ReportSummaryCards extends StatelessWidget {
         color: AppColors.warning,
       ),
       MetricCard(
-        title: 'Bankadan Ödenen',
+        title: 'Kredi Kartı',
         value: MoneyUtils.format(summary.bankPaidTotal),
-        icon: Icons.account_balance_outlined,
+        icon: Icons.credit_card_outlined,
         color: AppColors.bank,
       ),
       MetricCard(
