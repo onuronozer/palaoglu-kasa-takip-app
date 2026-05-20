@@ -3,10 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/farm_worker_utils.dart';
 import '../../core/utils/money_utils.dart';
 import '../../data/models/farm_expense_model.dart';
 import '../../data/models/farm_payment_model.dart';
 import '../../data/models/farm_sale_model.dart';
+import '../../data/models/farm_worker_model.dart';
+import '../../data/models/farm_worker_payment_model.dart';
+import '../../data/models/farm_worker_work_model.dart';
 import '../../data/models/merchant_model.dart';
 import '../../data/repositories/farm_repository.dart';
 import '../dashboard/widgets/action_card.dart';
@@ -21,21 +25,36 @@ class FarmDashboardScreen extends ConsumerWidget {
     final salesState = ref.watch(farmSalesProvider);
     final paymentsState = ref.watch(farmPaymentsProvider);
     final expensesState = ref.watch(farmExpensesProvider);
+    final workersState = ref.watch(farmWorkersProvider);
+    final workerWorksState = ref.watch(farmWorkerWorksProvider);
+    final workerPaymentsState = ref.watch(farmWorkerPaymentsProvider);
 
     final merchants = merchantsState.valueOrNull ?? const <MerchantModel>[];
     final sales = salesState.valueOrNull ?? const <FarmSaleModel>[];
     final payments = paymentsState.valueOrNull ?? const <FarmPaymentModel>[];
     final expenses = expensesState.valueOrNull ?? const <FarmExpenseModel>[];
+    final workers = workersState.valueOrNull ?? const <FarmWorkerModel>[];
+    final workerWorks =
+        workerWorksState.valueOrNull ?? const <FarmWorkerWorkModel>[];
+    final workerPayments =
+        workerPaymentsState.valueOrNull ?? const <FarmWorkerPaymentModel>[];
     final loading =
         merchantsState.isLoading && merchantsState.valueOrNull == null ||
         salesState.isLoading && salesState.valueOrNull == null ||
         paymentsState.isLoading && paymentsState.valueOrNull == null ||
-        expensesState.isLoading && expensesState.valueOrNull == null;
+        expensesState.isLoading && expensesState.valueOrNull == null ||
+        workersState.isLoading && workersState.valueOrNull == null ||
+        workerWorksState.isLoading && workerWorksState.valueOrNull == null ||
+        workerPaymentsState.isLoading &&
+            workerPaymentsState.valueOrNull == null;
     final hasError =
         merchantsState.hasError ||
         salesState.hasError ||
         paymentsState.hasError ||
-        expensesState.hasError;
+        expensesState.hasError ||
+        workersState.hasError ||
+        workerWorksState.hasError ||
+        workerPaymentsState.hasError;
 
     final totalSales = sales.fold<double>(
       0,
@@ -52,6 +71,19 @@ class FarmDashboardScreen extends ConsumerWidget {
     final totalExpenses = expenses.fold<double>(
       0,
       (sum, item) => sum + item.amount,
+    );
+    final workerSummaries = FarmWorkerUtils.summaries(
+      workers: workers,
+      works: workerWorks,
+      payments: workerPayments,
+    );
+    final totalWorkerEarned = workerSummaries.fold<double>(
+      0,
+      (sum, item) => sum + item.totalEarned,
+    );
+    final totalWorkerRemaining = workerSummaries.fold<double>(
+      0,
+      (sum, item) => sum + (item.remaining > 0 ? item.remaining : 0),
     );
 
     return Scaffold(
@@ -109,12 +141,28 @@ class FarmDashboardScreen extends ConsumerWidget {
                         icon: Icons.receipt_long,
                         color: AppColors.expense,
                       ),
+                      MetricCard(
+                        title: 'İşçi Hakediş',
+                        value: MoneyUtils.format(totalWorkerEarned),
+                        icon: Icons.engineering_outlined,
+                        color: AppColors.expense,
+                      ),
+                      MetricCard(
+                        title: 'İşçi Alacağı',
+                        value: MoneyUtils.format(totalWorkerRemaining),
+                        icon: Icons.account_balance_outlined,
+                        color: totalWorkerRemaining >= 0
+                            ? AppColors.debt
+                            : AppColors.primary,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   _ActionGrid(),
                   const SizedBox(height: 16),
                   _MerchantBalanceCard(merchants: merchants),
+                  const SizedBox(height: 16),
+                  _WorkerBalanceCard(summaries: workerSummaries),
                   const SizedBox(height: 16),
                   _RecentSalesCard(sales: sales, merchants: merchants),
                   const SizedBox(height: 16),
@@ -173,7 +221,7 @@ class _HeaderCard extends StatelessWidget {
                       ? 'Bazı veriler okunamadı.'
                       : loading
                       ? 'Veriler yükleniyor...'
-                      : 'Satış, tahsilat, tüccar ve bahçe giderleri.',
+                      : 'Satış, tahsilat, tüccar, işçi ve bahçe giderleri.',
                   style: const TextStyle(color: AppColors.mutedText),
                 ),
               ],
@@ -229,6 +277,18 @@ class _ActionGrid extends StatelessWidget {
           onTap: () => context.push('/farm/expense'),
         ),
         ActionCard(
+          title: 'İşçiler',
+          icon: Icons.engineering_outlined,
+          color: AppColors.turquoise,
+          onTap: () => context.push('/farm/workers'),
+        ),
+        ActionCard(
+          title: 'Kayısı Cinsleri',
+          icon: Icons.spa_outlined,
+          color: AppColors.income,
+          onTap: () => context.push('/farm/varieties'),
+        ),
+        ActionCard(
           title: 'Tarım Raporu',
           icon: Icons.insert_chart_outlined,
           color: AppColors.debt,
@@ -260,6 +320,38 @@ class _MerchantBalanceCard extends StatelessWidget {
                         : merchant.phone,
                     amount: MoneyUtils.format(merchant.currentBalance),
                     color: merchant.currentBalance >= 0
+                        ? AppColors.debt
+                        : AppColors.primary,
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+class _WorkerBalanceCard extends StatelessWidget {
+  const _WorkerBalanceCard({required this.summaries});
+
+  final List<FarmWorkerSummary> summaries;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = summaries.take(5).toList();
+    return _FarmCard(
+      title: 'İşçi Hakedişleri',
+      child: shown.isEmpty
+          ? const _EmptyText('Henüz işçi kaydı yok.')
+          : Column(
+              children: [
+                for (final summary in shown)
+                  _InfoLine(
+                    title: summary.name,
+                    subtitle:
+                        '${_formatDays(summary.totalDays)} gün • Ödenen ${MoneyUtils.format(summary.totalPaid)}',
+                    amount: summary.remaining >= 0
+                        ? MoneyUtils.format(summary.remaining)
+                        : 'Fazla ${MoneyUtils.format(summary.overPaid)}',
+                    color: summary.remaining >= 0
                         ? AppColors.debt
                         : AppColors.primary,
                   ),
@@ -423,4 +515,11 @@ class _EmptyText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(text, style: const TextStyle(color: AppColors.mutedText));
   }
+}
+
+String _formatDays(double value) {
+  if (value % 1 == 0) {
+    return value.toStringAsFixed(0);
+  }
+  return value.toStringAsFixed(1);
 }

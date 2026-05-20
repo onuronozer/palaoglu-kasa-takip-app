@@ -43,6 +43,15 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final merchantsState = ref.watch(merchantsProvider);
+    final varietiesState = ref.watch(farmApricotVarietiesProvider);
+    final varietyDocs = varietiesState.valueOrNull;
+    final apricotOptions = varietyDocs == null || varietyDocs.isEmpty
+        ? ApricotVarieties.all
+        : varietyDocs
+              .where((variety) => variety.active)
+              .map((variety) => variety.name)
+              .where((name) => name.trim().isNotEmpty)
+              .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -86,6 +95,7 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
                               index: index,
                               draft: _drafts[index],
                               merchants: merchants,
+                              apricotOptions: apricotOptions,
                               selectedMonth: _selectedMonth,
                               enabled: !_isSaving,
                               canRemove: _drafts.length > 1,
@@ -156,12 +166,13 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
   Future<void> _save() async {
     final repository = ref.read(farmRepositoryProvider);
     final validDrafts = <_FarmBulkDraft>[];
+    final apricotOptions = _activeApricotOptions();
 
     for (final draft in _drafts) {
       if (!draft.hasAmount) {
         continue;
       }
-      final validation = draft.validate();
+      final validation = draft.validate(apricotOptions);
       if (validation != null) {
         _showSnack(validation);
         return;
@@ -254,6 +265,18 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+
+  List<String> _activeApricotOptions() {
+    final varietyDocs = ref.read(farmApricotVarietiesProvider).valueOrNull;
+    if (varietyDocs == null || varietyDocs.isEmpty) {
+      return ApricotVarieties.all;
+    }
+    return varietyDocs
+        .where((variety) => variety.active)
+        .map((variety) => variety.name)
+        .where((name) => name.trim().isNotEmpty)
+        .toList();
+  }
 }
 
 class _BulkDraftCard extends StatelessWidget {
@@ -261,6 +284,7 @@ class _BulkDraftCard extends StatelessWidget {
     required this.index,
     required this.draft,
     required this.merchants,
+    required this.apricotOptions,
     required this.selectedMonth,
     required this.enabled,
     required this.canRemove,
@@ -271,6 +295,7 @@ class _BulkDraftCard extends StatelessWidget {
   final int index;
   final _FarmBulkDraft draft;
   final List<MerchantModel> merchants;
+  final List<String> apricotOptions;
   final DateTime selectedMonth;
   final bool enabled;
   final bool canRemove;
@@ -359,7 +384,7 @@ class _BulkDraftCard extends StatelessWidget {
                           if (value == null) {
                             return;
                           }
-                          draft.setType(value);
+                          draft.setType(value, apricotOptions);
                           onChanged();
                         }
                       : null,
@@ -391,7 +416,7 @@ class _BulkDraftCard extends StatelessWidget {
                       if (value == null) {
                         return;
                       }
-                      draft.setProduct(value);
+                      draft.setProduct(value, apricotOptions);
                       onChanged();
                     }
                   : null,
@@ -399,10 +424,12 @@ class _BulkDraftCard extends StatelessWidget {
             if (draft.product == FarmProducts.kayisi) ...[
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
-                value: draft.variety,
+                value: apricotOptions.contains(draft.variety)
+                    ? draft.variety
+                    : null,
                 decoration: const InputDecoration(labelText: 'Kayısı çeşidi'),
                 items: [
-                  for (final variety in ApricotVarieties.all)
+                  for (final variety in apricotOptions)
                     DropdownMenuItem(value: variety, child: Text(variety)),
                 ],
                 onChanged: enabled
@@ -608,26 +635,33 @@ class _FarmBulkDraft {
     return MoneyUtils.parse(amountController.text) > 0;
   }
 
-  void setType(String value) {
+  void setType(String value, List<String> apricotOptions) {
     type = value;
     if (type == _FarmBulkType.sale) {
       product = FarmProducts.kayisi;
-      variety = ApricotVarieties.all.first;
+      variety = apricotOptions.isEmpty ? null : apricotOptions.first;
     }
   }
 
-  void setProduct(String value) {
+  void setProduct(String value, List<String> apricotOptions) {
     product = value;
-    variety = value == FarmProducts.kayisi ? ApricotVarieties.all.first : null;
+    variety = value == FarmProducts.kayisi
+        ? apricotOptions.isEmpty
+              ? null
+              : apricotOptions.first
+        : null;
   }
 
-  String? validate() {
+  String? validate(List<String> apricotOptions) {
     if (type == _FarmBulkType.sale) {
       if (merchantId == null || merchantId!.isEmpty) {
         return 'Satış satırında tüccar seçilmeli.';
       }
       if (product == FarmProducts.kayisi &&
-          (variety == null || variety!.isEmpty)) {
+          (apricotOptions.isEmpty ||
+              variety == null ||
+              variety!.isEmpty ||
+              !apricotOptions.contains(variety))) {
         return 'Kayısı satışında çeşit seçilmeli.';
       }
       if (MoneyUtils.parse(kgController.text) <= 0 ||

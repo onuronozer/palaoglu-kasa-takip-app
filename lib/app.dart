@@ -17,6 +17,8 @@ import 'features/farm/farm_expense_screen.dart';
 import 'features/farm/farm_payment_screen.dart';
 import 'features/farm/farm_report_screen.dart';
 import 'features/farm/farm_sale_screen.dart';
+import 'features/farm/farm_variety_screen.dart';
+import 'features/farm/farm_worker_screen.dart';
 import 'features/farm/merchant_screen.dart';
 import 'features/records/edit_transaction_screen.dart';
 import 'features/records/records_screen.dart';
@@ -131,6 +133,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/farm/expense',
         builder: (context, state) {
           return const AuthGate(child: FarmExpenseScreen());
+        },
+      ),
+      GoRoute(
+        path: '/farm/workers',
+        builder: (context, state) {
+          return const AuthGate(child: FarmWorkerScreen());
+        },
+      ),
+      GoRoute(
+        path: '/farm/varieties',
+        builder: (context, state) {
+          return const AuthGate(child: FarmVarietyScreen());
         },
       ),
       GoRoute(

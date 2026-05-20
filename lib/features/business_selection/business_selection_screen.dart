@@ -81,7 +81,7 @@ class BusinessSelectionScreen extends ConsumerWidget {
                   _BusinessCard(
                     title: 'Palaoğlu Tarım',
                     subtitle:
-                        'Kayısı, elma, tüccar cari, satış, tahsilat ve gider takibi',
+                        'Kayısı, elma, tüccar cari, satış, tahsilat, işçi ve gider takibi',
                     icon: Icons.agriculture_outlined,
                     color: AppColors.turquoise,
                     onTap: () => context.go('/farm'),

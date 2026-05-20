@@ -351,6 +351,10 @@ tuccarlar
 satislar
 tahsilatlar
 giderler
+tarim_isciler
+tarim_isci_gunleri
+tarim_isci_odemeleri
+kayisi_cinsleri
 ```
 
 Tarım özellikleri:
@@ -360,7 +364,10 @@ Tarım özellikleri:
 - Satış kaydı eklenince `tuccarlar/{id}.guncel_bakiye` otomatik artar.
 - Tahsilat girme: alınan tutar tüccar bakiyesinden otomatik düşer.
 - Bahçe gideri girme: mazot, ilaç, gübre, budama, işçilik, su, elektrik.
+- Tarım işçi paneli: işçi ekleme, yevmiye belirleme, geldiği gün sayısı, ara/tam ödeme ve kalan alacak takibi.
+- Tarım işçi kayıtlarında gün ve ödeme düzeltme/silme, işçiyi aktif/pasif yapma.
+- Kayısı cinsleri paneli: cins ekleme, düzeltme, silme ve aktif/pasif yapma.
 - Toplu giriş: satış, tahsilat ve gider satırları tek ekrandan kaydedilebilir.
-- Tarım raporu: satış cirosu, tahsilat, kalan alacak, net durum, ürün satışları, gider kategorileri ve tüccar cari dökümü.
+- Tarım raporu: satış cirosu, tahsilat, kalan alacak, net durum, ürün satışları, gider kategorileri, işçi hakedişleri ve tüccar cari dökümü.
 
-Firebase Rules yayınlanırken `firestore.rules` içindeki `tuccarlar`, `satislar`, `tahsilatlar`, `giderler` kurallarının Firebase Console > Firestore > Rules ekranına eklenmesi gerekir.
+Firebase Rules yayınlanırken `firestore.rules` içindeki tarım koleksiyon kurallarının Firebase Console > Firestore > Rules ekranına eklenmesi gerekir.

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "723944539541",
+    "project_id": "palaoglu-14bf0",
+    "storage_bucket": "palaoglu-14bf0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:723944539541:android:4878f282d0b2b1c22b229c",
+        "android_client_info": {
+          "package_name": "com.palaoglu.kasatakip"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-cFhPw-rhgcdhrAEtQws4SLNMktRuyfw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -60,5 +60,22 @@ service cloud.firestore {
       allow read, create: if activeUser();
       allow update, delete: if false;
     }
+
+    match /tarim_isciler/{workerId} {
+      allow read, create, update: if activeUser();
+      allow delete: if false;
+    }
+
+    match /tarim_isci_gunleri/{workId} {
+      allow read, create, update, delete: if activeUser();
+    }
+
+    match /tarim_isci_odemeleri/{paymentId} {
+      allow read, create, update, delete: if activeUser();
+    }
+
+    match /kayisi_cinsleri/{varietyId} {
+      allow read, create, update, delete: if activeUser();
+    }
   }
 }

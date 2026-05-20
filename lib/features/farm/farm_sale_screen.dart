@@ -39,6 +39,16 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
   @override
   Widget build(BuildContext context) {
     final merchantsState = ref.watch(merchantsProvider);
+    final varietiesState = ref.watch(farmApricotVarietiesProvider);
+    final varietyDocs = varietiesState.valueOrNull;
+    final apricotOptions = varietyDocs == null || varietyDocs.isEmpty
+        ? ApricotVarieties.all
+        : varietyDocs
+              .where((variety) => variety.active)
+              .map((variety) => variety.name)
+              .where((name) => name.trim().isNotEmpty)
+              .toList();
+    final selectedVariety = apricotOptions.contains(_variety) ? _variety : null;
     final kg = MoneyUtils.parse(_kgController.text);
     final price = MoneyUtils.parse(_priceController.text);
     final total = kg * price;
@@ -98,7 +108,9 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
                       setState(() {
                         _product = value;
                         _variety = value == FarmProducts.kayisi
-                            ? ApricotVarieties.all.first
+                            ? apricotOptions.isEmpty
+                                  ? null
+                                  : apricotOptions.first
                             : null;
                       });
                     },
@@ -107,8 +119,8 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
                     const SizedBox(height: 14),
                     CategorySelector(
                       title: 'Kayısı çeşidi',
-                      options: ApricotVarieties.all,
-                      selected: _variety,
+                      options: apricotOptions,
+                      selected: selectedVariety,
                       onChanged: (value) => setState(() => _variety = value),
                     ),
                   ],
@@ -170,7 +182,7 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
 
     final kg = MoneyUtils.parse(_kgController.text);
     final price = MoneyUtils.parse(_priceController.text);
-    final validation = _validate(kg, price);
+    final validation = _validate(kg, price, _activeApricotOptions());
     if (validation != null) {
       setState(() {
         _error = validation;
@@ -215,12 +227,17 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
     }
   }
 
-  String? _validate(double kg, double price) {
+  String? _validate(double kg, double price, List<String> apricotOptions) {
     if (_merchantId == null || _merchantId!.isEmpty) {
       return 'Tüccar seçilmeli.';
     }
+    if (_product == FarmProducts.kayisi && apricotOptions.isEmpty) {
+      return 'Aktif kayısı cinsi eklenmeli.';
+    }
     if (_product == FarmProducts.kayisi &&
-        (_variety == null || _variety!.isEmpty)) {
+        (_variety == null ||
+            _variety!.isEmpty ||
+            !apricotOptions.contains(_variety))) {
       return 'Kayısı çeşidi seçilmeli.';
     }
     if (kg <= 0) {
@@ -230,6 +247,18 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
       return 'Fiyat 0’dan büyük olmalı.';
     }
     return null;
+  }
+
+  List<String> _activeApricotOptions() {
+    final varietyDocs = ref.read(farmApricotVarietiesProvider).valueOrNull;
+    if (varietyDocs == null || varietyDocs.isEmpty) {
+      return ApricotVarieties.all;
+    }
+    return varietyDocs
+        .where((variety) => variety.active)
+        .map((variety) => variety.name)
+        .where((name) => name.trim().isNotEmpty)
+        .toList();
   }
 }
 
