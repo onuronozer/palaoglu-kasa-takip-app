@@ -257,13 +257,6 @@ class _AddVarietyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final existingNames = varieties
-        .map((variety) => variety.name.trim().toLowerCase())
-        .toSet();
-    final hasMissingDefaults = ApricotVarieties.all.any(
-      (name) => !existingNames.contains(name.trim().toLowerCase()),
-    );
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -315,6 +308,13 @@ class _VarietyList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final existingNames = varieties
+        .map((variety) => variety.name.trim().toLowerCase())
+        .toSet();
+    final hasMissingDefaults = ApricotVarieties.all.any(
+      (name) => !existingNames.contains(name.trim().toLowerCase()),
+    );
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

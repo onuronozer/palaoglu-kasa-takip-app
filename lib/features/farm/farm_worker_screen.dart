@@ -483,8 +483,9 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                         workers: workers,
                         selectedId: workerId,
                         enabled: true,
-                        onChanged: (value) =>
-                            setDialogState(() => workerId = value),
+                        onChanged: (value) => setDialogState(
+                          () => workerId = value ?? workerId,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       _NumberField(
@@ -635,8 +636,9 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                         workers: workers,
                         selectedId: workerId,
                         enabled: true,
-                        onChanged: (value) =>
-                            setDialogState(() => workerId = value),
+                        onChanged: (value) => setDialogState(
+                          () => workerId = value ?? workerId,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       _NumberField(
