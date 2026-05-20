@@ -40,5 +40,25 @@ service cloud.firestore {
       allow read: if adminUser();
       allow update, delete: if false;
     }
+
+    match /tuccarlar/{merchantId} {
+      allow read, create, update: if activeUser();
+      allow delete: if false;
+    }
+
+    match /satislar/{saleId} {
+      allow read, create: if activeUser();
+      allow update, delete: if false;
+    }
+
+    match /tahsilatlar/{paymentId} {
+      allow read, create: if activeUser();
+      allow update, delete: if false;
+    }
+
+    match /giderler/{expenseId} {
+      allow read, create: if activeUser();
+      allow update, delete: if false;
+    }
   }
 }

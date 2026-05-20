@@ -6,10 +6,18 @@ import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
+import 'features/business_selection/business_selection_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/employees/employee_settings_screen.dart';
 import 'features/entry/entry_screen.dart';
 import 'features/bulk_entry/bulk_entry_screen.dart';
+import 'features/farm/farm_bulk_entry_screen.dart';
+import 'features/farm/farm_dashboard_screen.dart';
+import 'features/farm/farm_expense_screen.dart';
+import 'features/farm/farm_payment_screen.dart';
+import 'features/farm/farm_report_screen.dart';
+import 'features/farm/farm_sale_screen.dart';
+import 'features/farm/merchant_screen.dart';
 import 'features/records/edit_transaction_screen.dart';
 import 'features/records/records_screen.dart';
 import 'features/report/report_screen.dart';
@@ -20,6 +28,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
+        builder: (context, state) {
+          return const AuthGate(child: BusinessSelectionScreen());
+        },
+      ),
+      GoRoute(
+        path: '/kiraathane',
         builder: (context, state) {
           return const AuthGate(child: DashboardScreen());
         },
@@ -83,6 +97,48 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return const AuthGate(child: EmployeeSettingsScreen());
         },
       ),
+      GoRoute(
+        path: '/farm',
+        builder: (context, state) {
+          return const AuthGate(child: FarmDashboardScreen());
+        },
+      ),
+      GoRoute(
+        path: '/farm/merchants',
+        builder: (context, state) {
+          return const AuthGate(child: MerchantScreen());
+        },
+      ),
+      GoRoute(
+        path: '/farm/sale',
+        builder: (context, state) {
+          return const AuthGate(child: FarmSaleScreen());
+        },
+      ),
+      GoRoute(
+        path: '/farm/bulk-entry',
+        builder: (context, state) {
+          return const AuthGate(child: FarmBulkEntryScreen());
+        },
+      ),
+      GoRoute(
+        path: '/farm/payment',
+        builder: (context, state) {
+          return const AuthGate(child: FarmPaymentScreen());
+        },
+      ),
+      GoRoute(
+        path: '/farm/expense',
+        builder: (context, state) {
+          return const AuthGate(child: FarmExpenseScreen());
+        },
+      ),
+      GoRoute(
+        path: '/farm/report',
+        builder: (context, state) {
+          return const AuthGate(child: FarmReportScreen());
+        },
+      ),
     ],
     errorBuilder: (context, state) {
       return _MessageScaffold(
@@ -103,7 +159,7 @@ class PalaogluKasaApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Palaoğlu Kasa Takip',
+      title: 'Palaoğlu Yönetim',
       theme: AppTheme.darkTheme,
       routerConfig: ref.watch(appRouterProvider),
       builder: (context, child) {

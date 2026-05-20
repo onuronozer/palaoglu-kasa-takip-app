@@ -334,3 +334,33 @@ Ana ekrandaki `Toplu Giriş` ekranında:
 - Günlük ciro tutarları gün gün yazılabilir.
 - İşçi ödemeleri satır satır eklenebilir.
 - Karışık toplu giriş ile ciro, masraf, işçi, banka, borç/alacak kayıtları aynı ekranda tek seferde kaydedilebilir.
+
+## Palaoğlu Tarım Modülü
+
+Uygulamaya girişten sonra iki işletme seçimi gelir:
+
+```text
+Palaoğlu Kıraathanesi
+Palaoğlu Tarım
+```
+
+Tarım modülünde kullanılan Firestore koleksiyonları:
+
+```text
+tuccarlar
+satislar
+tahsilatlar
+giderler
+```
+
+Tarım özellikleri:
+
+- Tüccar ekleme ve cari bakiye takibi.
+- Satış girme: ürün, kayısı çeşidi, kg, kg fiyatı ve toplam tutar.
+- Satış kaydı eklenince `tuccarlar/{id}.guncel_bakiye` otomatik artar.
+- Tahsilat girme: alınan tutar tüccar bakiyesinden otomatik düşer.
+- Bahçe gideri girme: mazot, ilaç, gübre, budama, işçilik, su, elektrik.
+- Toplu giriş: satış, tahsilat ve gider satırları tek ekrandan kaydedilebilir.
+- Tarım raporu: satış cirosu, tahsilat, kalan alacak, net durum, ürün satışları, gider kategorileri ve tüccar cari dökümü.
+
+Firebase Rules yayınlanırken `firestore.rules` içindeki `tuccarlar`, `satislar`, `tahsilatlar`, `giderler` kurallarının Firebase Console > Firestore > Rules ekranına eklenmesi gerekir.
