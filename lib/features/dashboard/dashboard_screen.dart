@@ -263,7 +263,7 @@ class _Header extends ConsumerWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            'Palaoğlu Kasa Takip',
+            'Palaoğlu Kıraathanesi',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 8),
@@ -329,83 +329,30 @@ class _MetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final commissionRemaining = summary.businessCommissionOverPaid > 0
-        ? 'Fazla ${MoneyUtils.format(summary.businessCommissionOverPaid)}'
-        : MoneyUtils.format(summary.businessCommissionDue);
     final metrics = [
       MetricCard(
-        title: 'Bugünkü Ciro',
-        value: MoneyUtils.format(summary.todayCiro),
-        icon: Icons.today_outlined,
-        color: AppColors.income,
-      ),
-      MetricCard(
-        title: 'Bugünkü Gider',
-        value: MoneyUtils.format(summary.todayGider),
-        icon: Icons.payments_outlined,
-        color: AppColors.expense,
-      ),
-      MetricCard(
-        title: 'Aylık Ciro',
+        title: 'Toplam Ciro',
         value: MoneyUtils.format(summary.monthlyCiro),
         icon: Icons.trending_up,
         color: AppColors.income,
       ),
       MetricCard(
-        title: 'Aylık Masraf',
+        title: 'Toplam Masraf',
         value: MoneyUtils.format(summary.monthlyMasraf),
         icon: Icons.receipt_long,
         color: AppColors.expense,
       ),
       MetricCard(
-        title: 'İşçi Ödemeleri',
+        title: 'Toplam İşçi',
         value: MoneyUtils.format(summary.employeePayments),
         icon: Icons.badge_outlined,
         color: AppColors.warning,
-      ),
-      MetricCard(
-        title: 'Bankaya Yatan',
-        value: MoneyUtils.format(summary.bankDeposits),
-        icon: Icons.account_balance,
-        color: AppColors.bank,
-      ),
-      MetricCard(
-        title: 'Kar / Zarar',
-        value: MoneyUtils.format(summary.profitLoss),
-        icon: Icons.analytics_outlined,
-        color: summary.profitLoss >= 0 ? AppColors.primary : AppColors.expense,
-      ),
-      MetricCard(
-        title: 'İşletme Komisyonu',
-        value: MoneyUtils.format(summary.businessCommission),
-        icon: Icons.percent_outlined,
-        color: AppColors.primary,
-      ),
-      MetricCard(
-        title: 'Komisyon Ödenen',
-        value: MoneyUtils.format(summary.businessCommissionPayments),
-        icon: Icons.payments_outlined,
-        color: AppColors.warning,
-      ),
-      MetricCard(
-        title: 'Komisyon Kalan',
-        value: commissionRemaining,
-        icon: Icons.assignment_turned_in_outlined,
-        color: summary.businessCommissionOverPaid > 0
-            ? AppColors.warning
-            : AppColors.turquoise,
       ),
       MetricCard(
         title: 'Kasa Nakit',
         value: MoneyUtils.format(summary.cashOnHand),
         icon: Icons.account_balance_wallet_outlined,
         color: AppColors.turquoise,
-      ),
-      MetricCard(
-        title: 'Kalan Borç',
-        value: MoneyUtils.format(summary.remainingDebt),
-        icon: Icons.handshake_outlined,
-        color: AppColors.debt,
       ),
     ];
 
@@ -432,63 +379,63 @@ class _ActionGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actions = [
-      ActionCard(
+    final quickActions = [
+      _ActionItem(
         title: 'Ciro Gir',
         icon: Icons.add_chart,
         color: AppColors.income,
         onTap: () => context.push('/entry/ciro?month=$monthKey'),
       ),
-      ActionCard(
-        title: 'Toplu Giriş',
-        icon: Icons.playlist_add,
-        color: AppColors.primary,
-        onTap: () => context.push('/bulk-entry?month=$monthKey'),
-      ),
-      ActionCard(
-        title: 'Kayıt Dökümü',
-        icon: Icons.list_alt_outlined,
-        color: AppColors.turquoise,
-        onTap: () => context.push('/records?month=$monthKey'),
-      ),
-      ActionCard(
+      _ActionItem(
         title: 'Masraf Gir',
         icon: Icons.receipt_long,
         color: AppColors.expense,
         onTap: () => context.push('/entry/masraf?month=$monthKey'),
       ),
-      ActionCard(
+      _ActionItem(
         title: 'İşçi Ödemesi',
         icon: Icons.badge_outlined,
         color: AppColors.warning,
         onTap: () => context.push('/entry/isci?month=$monthKey'),
       ),
-      ActionCard(
-        title: 'Komisyon Gir',
-        icon: Icons.percent_outlined,
-        color: AppColors.primary,
-        onTap: () => context.push('/entry/komisyon?month=$monthKey'),
+    ];
+
+    final recordActions = [
+      _ActionItem(
+        title: 'Kayıt Dökümü',
+        icon: Icons.list_alt_outlined,
+        color: AppColors.turquoise,
+        onTap: () => context.push('/records?month=$monthKey'),
       ),
-      ActionCard(
-        title: 'Bankaya Yatan',
-        icon: Icons.account_balance,
-        color: AppColors.bank,
-        onTap: () => context.push('/entry/banka?month=$monthKey'),
-      ),
-      ActionCard(
-        title: 'Borç / Alacak',
-        icon: Icons.handshake_outlined,
-        color: AppColors.debt,
-        onTap: () => context.push('/entry/borc?month=$monthKey'),
-      ),
-      ActionCard(
+      _ActionItem(
         title: 'Aylık Rapor',
         icon: Icons.insert_chart_outlined,
         color: AppColors.turquoise,
         onTap: () => context.push('/report?month=$monthKey'),
       ),
+      _ActionItem(
+        title: 'Toplu Giriş',
+        icon: Icons.playlist_add,
+        color: AppColors.primary,
+        onTap: () => context.push('/bulk-entry?month=$monthKey'),
+      ),
+    ];
+
+    final otherActions = [
+      _ActionItem(
+        title: 'Bankaya Yatan',
+        icon: Icons.account_balance,
+        color: AppColors.bank,
+        onTap: () => context.push('/entry/banka?month=$monthKey'),
+      ),
+      _ActionItem(
+        title: 'Borç / Alacak',
+        icon: Icons.handshake_outlined,
+        color: AppColors.debt,
+        onTap: () => context.push('/entry/borc?month=$monthKey'),
+      ),
       if (isAdmin)
-        ActionCard(
+        _ActionItem(
           title: 'Personel Ayarları',
           icon: Icons.manage_accounts_outlined,
           color: AppColors.primary,
@@ -496,19 +443,69 @@ class _ActionGrid extends StatelessWidget {
         ),
     ];
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: actions.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        mainAxisExtent: 78,
-      ),
-      itemBuilder: (context, index) => actions[index],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ActionSection(title: 'Hızlı İşlemler', actions: quickActions),
+        const SizedBox(height: 18),
+        _ActionSection(title: 'Kayıt ve Rapor', actions: recordActions),
+        const SizedBox(height: 18),
+        _ActionSection(title: 'Diğer', actions: otherActions),
+      ],
     );
   }
+}
+
+class _ActionSection extends StatelessWidget {
+  const _ActionSection({required this.title, required this.actions});
+
+  final String title;
+  final List<_ActionItem> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 10),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: actions.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            mainAxisExtent: 78,
+          ),
+          itemBuilder: (context, index) {
+            final action = actions[index];
+            return ActionCard(
+              title: action.title,
+              icon: action.icon,
+              color: action.color,
+              onTap: action.onTap,
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionItem {
+  const _ActionItem({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
 }
 
 class _DashboardLoading extends StatelessWidget {

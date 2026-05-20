@@ -26,12 +26,12 @@ class WhatsAppUtils {
       ..writeln('Bankaya Yatan: ${MoneyUtils.format(summary.bankDeposits)}')
       ..writeln('Kar / Zarar: ${MoneyUtils.format(summary.profitLoss)}')
       ..writeln(
-        'İşletme Komisyonu: ${MoneyUtils.format(summary.businessCommission)}',
+        'İşletme Ortağı: ${MoneyUtils.format(summary.businessCommission)}',
       )
       ..writeln(
-        'Komisyon Ödenen: ${MoneyUtils.format(summary.businessCommissionPayments)}',
+        'Ortağa Ödenen: ${MoneyUtils.format(summary.businessCommissionPayments)}',
       )
-      ..writeln('Komisyon Kalan: $commissionRemaining')
+      ..writeln('Ortak Kalan: $commissionRemaining')
       ..writeln('Kasa Nakit: ${MoneyUtils.format(summary.cashOnHand)}')
       ..writeln('Kasadan Ödenen: ${MoneyUtils.format(summary.cashPaidTotal)}')
       ..writeln('Şahsi Ödenen: ${MoneyUtils.format(summary.personalPaidTotal)}')

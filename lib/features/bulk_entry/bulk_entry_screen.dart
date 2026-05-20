@@ -251,29 +251,37 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
       }
 
       if (draft.employee == null || draft.employee!.trim().isEmpty) {
-        _showSnack('Tutar girilen her satırda personel seçilmeli.');
+        _showSnack(
+          'Tutar girilen her satırda personel veya işletme ortağı seçilmeli.',
+        );
         return;
       }
 
+      final isPartnerPayment = draft.employee == AppCategories.komisyon;
       final date = DateTime(
         _selectedMonth.year,
         _selectedMonth.month,
         draft.day,
       );
       final description = draft.descriptionController.text.trim();
+      final defaultDescription = isPartnerPayment
+          ? 'Toplu işletme ortağı ödemesi'
+          : 'Toplu işçi ödemesi girişi';
       transactions.add(
         TransactionModel(
           id: '',
           date: AppDateUtils.dateKey(date),
           monthKey: AppDateUtils.monthKey(date),
-          type: TransactionTypes.isci,
-          category: AppCategories.isci,
-          person: draft.employee!,
+          type: isPartnerPayment
+              ? TransactionTypes.komisyon
+              : TransactionTypes.isci,
+          category: isPartnerPayment
+              ? AppCategories.komisyon
+              : AppCategories.isci,
+          person: isPartnerPayment ? '' : draft.employee!,
           amount: amount,
           paymentSource: draft.paymentSource,
-          description: description.isEmpty
-              ? 'Toplu işçi ödemesi girişi'
-              : description,
+          description: description.isEmpty ? defaultDescription : description,
           createdByUid: appUser.uid,
           createdByName: appUser.displayName,
         ),
@@ -569,6 +577,7 @@ class _EmployeeBulkCard extends StatelessWidget {
       AppDateUtils.daysInMonth(selectedMonth),
       (index) => index + 1,
     );
+    final employeeOptions = [AppCategories.komisyon, ...employees];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -596,22 +605,16 @@ class _EmployeeBulkCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          if (employees.isEmpty)
-            const Text(
-              'Aktif personel yok. Önce Personel Ayarları ekranından personel ekleyin.',
-              style: TextStyle(color: AppColors.mutedText),
-            )
-          else
-            for (var index = 0; index < drafts.length; index++)
-              _EmployeePaymentRow(
-                draft: drafts[index],
-                days: days,
-                employees: employees,
-                index: index,
-                isSaving: isSaving,
-                onRemove: () => onRemoveRow(index),
-                onChanged: onChanged,
-              ),
+          for (var index = 0; index < drafts.length; index++)
+            _EmployeePaymentRow(
+              draft: drafts[index],
+              days: days,
+              employees: employeeOptions,
+              index: index,
+              isSaving: isSaving,
+              onRemove: () => onRemoveRow(index),
+              onChanged: onChanged,
+            ),
           const SizedBox(height: 14),
           OutlinedButton.icon(
             onPressed: isSaving ? null : onAddRow,
@@ -620,10 +623,10 @@ class _EmployeeBulkCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
-            onPressed: isSaving || employees.isEmpty ? null : onSave,
+            onPressed: isSaving ? null : onSave,
             icon: const Icon(Icons.save_outlined),
             label: Text(
-              isSaving ? 'Kaydediliyor...' : 'İşçi Ödemelerini Kaydet',
+              isSaving ? 'Kaydediliyor...' : 'Ödemeleri Kaydet',
             ),
           ),
         ],
@@ -711,7 +714,9 @@ class _EmployeePaymentRow extends StatelessWidget {
                 flex: 2,
                 child: DropdownButtonFormField<String>(
                   value: draft.employee,
-                  decoration: const InputDecoration(labelText: 'Personel'),
+                  decoration: const InputDecoration(
+                    labelText: 'Personel / Ortak',
+                  ),
                   items: [
                     for (final employee in employees)
                       DropdownMenuItem(value: employee, child: Text(employee)),
@@ -815,7 +820,7 @@ class _MixedBulkCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Masraf, bankaya yatan, borç/alacak, ciro, işçi ödemesi ve işletme komisyonunu aynı listede toplu kaydedebilirsin.',
+            'Masraf, bankaya yatan, borç/alacak, ciro, işçi ödemesi ve işletme ortağı ödemesini aynı listede toplu kaydedebilirsin.',
             style: TextStyle(color: AppColors.mutedText, fontSize: 12),
           ),
           const SizedBox(height: 12),
@@ -944,7 +949,7 @@ class _MixedTransactionRow extends StatelessWidget {
                     ),
                     DropdownMenuItem(
                       value: TransactionTypes.komisyon,
-                      child: Text('Komisyon'),
+                      child: Text('İşletme Ortağı'),
                     ),
                     DropdownMenuItem(
                       value: TransactionTypes.banka,
@@ -1144,7 +1149,7 @@ class _MixedTransactionDraft {
       case TransactionTypes.komisyon:
         category = AppCategories.komisyon;
         paymentSource = PaymentSources.cash;
-        descriptionController.text = 'Toplu işletme komisyonu';
+        descriptionController.text = 'Toplu işletme ortağı ödemesi';
         break;
       case TransactionTypes.banka:
         category = AppCategories.banka;

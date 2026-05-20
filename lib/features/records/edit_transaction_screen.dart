@@ -143,7 +143,7 @@ class _EditTransactionFormState extends ConsumerState<_EditTransactionForm> {
                       ),
                       DropdownMenuItem(
                         value: TransactionTypes.komisyon,
-                        child: Text('İşletme Komisyonu'),
+                        child: Text('İşletme Ortağı'),
                       ),
                       DropdownMenuItem(
                         value: TransactionTypes.banka,

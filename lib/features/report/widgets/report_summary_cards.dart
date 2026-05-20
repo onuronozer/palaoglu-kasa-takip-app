@@ -47,19 +47,19 @@ class ReportSummaryCards extends StatelessWidget {
         color: summary.profitLoss >= 0 ? AppColors.primary : AppColors.expense,
       ),
       MetricCard(
-        title: 'İşletme Komisyonu',
+        title: 'İşletme Ortağı',
         value: MoneyUtils.format(summary.businessCommission),
         icon: Icons.percent_outlined,
         color: AppColors.primary,
       ),
       MetricCard(
-        title: 'Komisyon Ödenen',
+        title: 'Ortağa Ödenen',
         value: MoneyUtils.format(summary.businessCommissionPayments),
         icon: Icons.payments_outlined,
         color: AppColors.warning,
       ),
       MetricCard(
-        title: 'Komisyon Kalan',
+        title: 'Ortak Kalan',
         value: commissionRemaining,
         icon: Icons.assignment_turned_in_outlined,
         color: summary.businessCommissionOverPaid > 0

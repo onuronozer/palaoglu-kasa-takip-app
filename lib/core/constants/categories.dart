@@ -19,7 +19,7 @@ class TransactionTypes {
       case isci:
         return 'İşçi Ödemesi';
       case komisyon:
-        return 'İşletme Komisyonu';
+        return 'İşletme Ortağı';
       case banka:
         return 'Bankaya Yatan';
       case borc:
@@ -35,7 +35,7 @@ class AppCategories {
 
   static const ciro = 'Ciro';
   static const isci = 'İşçi Ödemesi';
-  static const komisyon = 'İşletme Komisyonu';
+  static const komisyon = 'İşletme Ortağı';
   static const banka = 'Bankaya Yatan';
 
   static const expenseCategories = [

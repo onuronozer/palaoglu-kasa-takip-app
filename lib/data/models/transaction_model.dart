@@ -51,6 +51,9 @@ class TransactionModel {
     if (type == TransactionTypes.isci || type == TransactionTypes.borc) {
       return person.isEmpty ? category : person;
     }
+    if (type == TransactionTypes.komisyon) {
+      return AppCategories.komisyon;
+    }
     return category;
   }
 

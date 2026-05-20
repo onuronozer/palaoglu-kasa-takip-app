@@ -51,6 +51,9 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     if (widget.entryType == TransactionTypes.borc) {
       _selectedCategory = AppCategories.debtGiven;
     }
+    if (widget.entryType == TransactionTypes.komisyon) {
+      _selectedEmployee = AppCategories.komisyon;
+    }
   }
 
   @override
@@ -116,7 +119,8 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                     ),
                     const SizedBox(height: 14),
                   ],
-                  if (widget.entryType == TransactionTypes.isci) ...[
+                  if (widget.entryType == TransactionTypes.isci ||
+                      widget.entryType == TransactionTypes.komisyon) ...[
                     _EmployeeSelector(
                       selectedEmployee: _selectedEmployee,
                       onChanged: (value) {
@@ -124,15 +128,6 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                       },
                     ),
                     const SizedBox(height: 14),
-                    PaymentSourceSelector(
-                      selected: _paymentSource,
-                      onChanged: (value) {
-                        setState(() => _paymentSource = value);
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                  ],
-                  if (widget.entryType == TransactionTypes.komisyon) ...[
                     PaymentSourceSelector(
                       selected: _paymentSource,
                       onChanged: (value) {
@@ -224,7 +219,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       id: '',
       date: AppDateUtils.dateKey(_selectedDate),
       monthKey: AppDateUtils.monthKey(_selectedDate),
-      type: widget.entryType,
+      type: _typeForSave(),
       category: _categoryForSave(),
       person: _personForSave(),
       amount: amount,
@@ -264,9 +259,10 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       return 'Masraf kategorisi seçilmeli.';
     }
 
-    if (widget.entryType == TransactionTypes.isci &&
+    if ((widget.entryType == TransactionTypes.isci ||
+            widget.entryType == TransactionTypes.komisyon) &&
         (_selectedEmployee == null || _selectedEmployee!.isEmpty)) {
-      return 'İşçi ödemesinde personel seçilmeli.';
+      return 'İşçi ödemesinde personel veya işletme ortağı seçilmeli.';
     }
 
     if (widget.entryType == TransactionTypes.borc) {
@@ -282,7 +278,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   }
 
   String _categoryForSave() {
-    switch (widget.entryType) {
+    switch (_typeForSave()) {
       case TransactionTypes.ciro:
         return AppCategories.ciro;
       case TransactionTypes.masraf:
@@ -301,22 +297,32 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   }
 
   String _personForSave() {
-    if (widget.entryType == TransactionTypes.isci) {
+    if (_typeForSave() == TransactionTypes.isci) {
       return _selectedEmployee ?? '';
     }
-    if (widget.entryType == TransactionTypes.borc) {
+    if (_typeForSave() == TransactionTypes.borc) {
       return _personController.text.trim();
     }
     return '';
   }
 
   String _paymentSourceForSave() {
-    if (widget.entryType == TransactionTypes.masraf ||
-        widget.entryType == TransactionTypes.isci ||
-        widget.entryType == TransactionTypes.komisyon) {
+    final type = _typeForSave();
+    if (type == TransactionTypes.masraf ||
+        type == TransactionTypes.isci ||
+        type == TransactionTypes.komisyon) {
       return _paymentSource;
     }
     return PaymentSources.cash;
+  }
+
+  String _typeForSave() {
+    if ((widget.entryType == TransactionTypes.isci ||
+            widget.entryType == TransactionTypes.komisyon) &&
+        _selectedEmployee == AppCategories.komisyon) {
+      return TransactionTypes.komisyon;
+    }
+    return widget.entryType;
   }
 
   String _titleForType(String type) {
@@ -328,7 +334,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       case TransactionTypes.isci:
         return 'İşçi Ödemesi Gir';
       case TransactionTypes.komisyon:
-        return 'İşletme Komisyonu Gir';
+        return 'İşletme Ortağı Gir';
       case TransactionTypes.banka:
         return 'Bankaya Yatan Gir';
       case TransactionTypes.borc:
@@ -408,16 +414,14 @@ class _EmployeeSelector extends ConsumerWidget {
         style: TextStyle(color: AppColors.expense),
       ),
       data: (employees) {
-        if (employees.isEmpty) {
-          return const Text(
-            'Aktif personel yok. Admin panelinden personel ekleyin.',
-            style: TextStyle(color: AppColors.mutedText),
-          );
-        }
+        final options = [
+          AppCategories.komisyon,
+          ...employees.map((employee) => employee.name),
+        ];
 
         return CategorySelector(
-          title: 'Personel',
-          options: employees.map((employee) => employee.name).toList(),
+          title: 'Personel / İşletme Ortağı',
+          options: options,
           selected: selectedEmployee,
           onChanged: onChanged,
         );
