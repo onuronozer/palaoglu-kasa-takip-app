@@ -12,6 +12,8 @@ import '../../data/repositories/transaction_repository.dart';
 import '../auth/auth_controller.dart';
 import '../dashboard/widgets/month_selector.dart';
 
+const _creditCardFilter = 'credit_card';
+
 class RecordsScreen extends ConsumerStatefulWidget {
   const RecordsScreen({this.initialMonthKey, super.key});
 
@@ -86,6 +88,15 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                     data: (transactions) {
                       final filtered = _filter == 'all'
                           ? transactions
+                          : _filter == _creditCardFilter
+                          ? transactions
+                                .where(
+                                  (item) =>
+                                      item.type == TransactionTypes.masraf &&
+                                      item.category ==
+                                          AppCategories.creditCard,
+                                )
+                                .toList()
                           : transactions
                                 .where((item) => item.type == _filter)
                                 .toList();
@@ -204,6 +215,11 @@ class _FilterBar extends StatelessWidget {
             label: 'Tümü',
             selected: selected == 'all',
             onTap: () => onChanged('all'),
+          ),
+          _FilterChip(
+            label: 'Kredi Kartı',
+            selected: selected == _creditCardFilter,
+            onTap: () => onChanged(_creditCardFilter),
           ),
           for (final type in TransactionTypes.all)
             _FilterChip(

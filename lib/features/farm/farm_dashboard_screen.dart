@@ -90,18 +90,10 @@ class FarmDashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Palaoğlu Tarım'),
         leading: IconButton(
-          tooltip: 'İşletmeler',
+          tooltip: 'İşletmelerim',
           icon: const Icon(Icons.apps_outlined),
           onPressed: () => context.go('/'),
         ),
-        actions: [
-          TextButton.icon(
-            onPressed: () => context.go('/kiraathane'),
-            icon: const Icon(Icons.storefront_outlined, size: 18),
-            label: const Text('Kıraathane'),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SafeArea(
         child: Center(

@@ -340,8 +340,9 @@ Ana ekrandaki `Toplu Giriş` ekranında:
 
 - Günlük ciro tutarları gün gün yazılabilir.
 - İşçi ödemeleri satır satır eklenebilir.
-- Kredi kartı harcamaları satır satır girilebilir ve toplamı otomatik hesaplanır.
+- Kredi kartı harcamaları 20 hızlı tutar kutusuyla girilebilir; her eklemede 5 kutu daha açılır ve toplam otomatik hesaplanır.
 - Karışık toplu giriş ile ciro, masraf, işçi, işletme ortağı, banka, borç/alacak kayıtları aynı ekranda tek seferde kaydedilebilir.
+- Kayıt Dökümü ekranında Kredi Kartı filtresiyle bu kayıtlar ayrıca görülebilir, düzenlenebilir ve silinebilir.
 
 ## Palaoğlu Tarım Modülü
 
