@@ -10,10 +10,10 @@ import '../../data/repositories/employee_repository.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../dashboard/widgets/month_selector.dart';
 import 'widgets/debt_summary_card.dart';
+import 'widgets/expense_detail_table_card.dart';
 import 'widgets/employee_salary_card.dart';
 import 'widgets/expense_category_chart.dart';
 import 'widgets/report_summary_cards.dart';
-import 'widgets/trend_chart_card.dart';
 
 class ReportScreen extends ConsumerStatefulWidget {
   const ReportScreen({this.initialMonthKey, super.key});
@@ -130,11 +130,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                               const SizedBox(height: 16),
                               ReportSummaryCards(summary: summary),
                               const SizedBox(height: 16),
-                              TrendChartCard(
-                                trends: ReportUtils.dailyTrend(
-                                  transactions,
-                                  _selectedMonth,
-                                ),
+                              ExpenseDetailTableCard(
+                                transactions: transactions,
                               ),
                               const SizedBox(height: 16),
                               ExpenseCategoryChart(

@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import '../../data/models/employee_model.dart';
 import '../../data/models/transaction_model.dart';
 import '../constants/categories.dart';
-import 'date_utils.dart';
 
 class FinancialSummary {
   const FinancialSummary({
@@ -48,18 +47,6 @@ class FinancialSummary {
   double get cashPaidTotal => cashPaidMasraf + cashPaidEmployees;
 }
 
-class DailyTrend {
-  const DailyTrend({
-    required this.day,
-    required this.ciro,
-    required this.gider,
-  });
-
-  final int day;
-  final double ciro;
-  final double gider;
-}
-
 class ExpenseCategorySummary {
   const ExpenseCategorySummary({
     required this.category,
@@ -77,11 +64,13 @@ class EmployeeSalarySummary {
     required this.name,
     required this.salary,
     required this.paid,
+    required this.active,
   });
 
   final String name;
   final double salary;
   final double paid;
+  final bool active;
 
   double get difference => salary - paid;
   double get remaining => math.max(0, difference);
@@ -207,42 +196,6 @@ class ReportUtils {
     );
   }
 
-  static List<DailyTrend> dailyTrend(
-    List<TransactionModel> transactions,
-    DateTime month,
-  ) {
-    final days = AppDateUtils.daysInMonth(month);
-    final ciroByDay = <int, double>{};
-    final giderByDay = <int, double>{};
-
-    for (final transaction in transactions) {
-      final date = AppDateUtils.dateFromKey(transaction.date);
-      final day = date.day;
-
-      if (day < 1 || day > days) {
-        continue;
-      }
-
-      if (transaction.type == TransactionTypes.ciro) {
-        ciroByDay[day] = (ciroByDay[day] ?? 0) + transaction.amount;
-      }
-
-      if (transaction.type == TransactionTypes.masraf ||
-          transaction.type == TransactionTypes.isci) {
-        giderByDay[day] = (giderByDay[day] ?? 0) + transaction.amount;
-      }
-    }
-
-    return List.generate(days, (index) {
-      final day = index + 1;
-      return DailyTrend(
-        day: day,
-        ciro: ciroByDay[day] ?? 0,
-        gider: giderByDay[day] ?? 0,
-      );
-    });
-  }
-
   static List<ExpenseCategorySummary> expenseCategories(
     List<TransactionModel> transactions,
   ) {
@@ -297,11 +250,16 @@ class ReportUtils {
 
     for (final employee in employees) {
       knownNames.add(employee.name);
+      final paid = paidByEmployee[employee.name] ?? 0;
+      if (!employee.active && paid == 0) {
+        continue;
+      }
       summaries.add(
         EmployeeSalarySummary(
           name: employee.name,
           salary: employee.salary,
-          paid: paidByEmployee[employee.name] ?? 0,
+          paid: paid,
+          active: employee.active,
         ),
       );
     }
@@ -311,7 +269,12 @@ class ReportUtils {
         continue;
       }
       summaries.add(
-        EmployeeSalarySummary(name: entry.key, salary: 0, paid: entry.value),
+        EmployeeSalarySummary(
+          name: entry.key,
+          salary: 0,
+          paid: entry.value,
+          active: false,
+        ),
       );
     }
 

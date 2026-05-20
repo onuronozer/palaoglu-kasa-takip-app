@@ -319,6 +319,14 @@ Borç / Alacak
 
 Her kayıtta tarih, kategori/kişi, açıklama, tutar, kaydeden ve ödeme kaynağı görünür. `Düzenle` butonuyla yanlış girilen tarih, tutar, kategori, kişi, açıklama veya ödeme kaynağı düzeltilebilir.
 
+## Rapor Notları
+
+- `Ciro - Masraf Trendi` günlük tarih yanılmasına sebep olabileceği için kaldırıldı.
+- Rapor ekranına `Masraf Dökümü` eklendi.
+- Masraf dökümünde tarih, kategori, açıklama, ödeme kaynağı, tutar ve kaydeden görünür.
+- Pasif personelin o ay hiç işçi ödemesi yoksa raporda ve WhatsApp özetinde görünmez.
+- Pasif personelin o ay ödemesi varsa geçmiş kayıt bozulmasın diye raporda görünmeye devam eder.
+
 ## Toplu Giriş
 
 Ana ekrandaki `Toplu Giriş` ekranında:

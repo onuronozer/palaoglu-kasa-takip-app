@@ -252,6 +252,11 @@ class _EmployeeList extends ConsumerWidget {
                 ),
             ],
           ),
+          const SizedBox(height: 8),
+          const Text(
+            'İşten ayrılan personeli silme; pasife al. Eski ay kayıtları ve raporları korunur.',
+            style: TextStyle(color: AppColors.mutedText, fontSize: 12),
+          ),
           const SizedBox(height: 12),
           if (employees.isEmpty)
             const Padding(
@@ -310,21 +315,7 @@ class _EmployeeTile extends ConsumerWidget {
                   ),
                 ),
               ),
-              Switch(
-                value: employee.active,
-                activeColor: AppColors.primary,
-                onChanged: isLoading
-                    ? null
-                    : (value) {
-                        ref
-                            .read(employeeControllerProvider.notifier)
-                            .setActive(
-                              employee: employee,
-                              active: value,
-                              updatedBy: appUser,
-                            );
-                      },
-              ),
+              _StatusPill(active: employee.active),
             ],
           ),
           const SizedBox(height: 6),
@@ -333,33 +324,10 @@ class _EmployeeTile extends ConsumerWidget {
             style: const TextStyle(color: AppColors.mutedText),
           ),
           const SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
             children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: employee.active
-                        ? AppColors.primary.withOpacity(0.12)
-                        : AppColors.expense.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    employee.active ? 'Aktif' : 'Pasif',
-                    style: TextStyle(
-                      color: employee.active
-                          ? AppColors.primary
-                          : AppColors.expense,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
               OutlinedButton.icon(
                 onPressed: isLoading
                     ? null
@@ -367,9 +335,76 @@ class _EmployeeTile extends ConsumerWidget {
                 icon: const Icon(Icons.edit_outlined, size: 18),
                 label: const Text('Maaş güncelle'),
               ),
+              OutlinedButton.icon(
+                onPressed: isLoading
+                    ? null
+                    : () => _confirmActiveChange(context, ref),
+                icon: Icon(
+                  employee.active
+                      ? Icons.person_remove_outlined
+                      : Icons.person_add_alt_outlined,
+                  size: 18,
+                ),
+                label: Text(employee.active ? 'Pasife Al' : 'Aktifleştir'),
+              ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _confirmActiveChange(BuildContext context, WidgetRef ref) async {
+    final nextActive = !employee.active;
+    var confirmed = true;
+
+    if (!nextActive) {
+      confirmed =
+          await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                backgroundColor: AppColors.surface,
+                title: Text('${employee.name} pasife alınsın mı?'),
+                content: const Text(
+                  'Bu personel yeni işçi ödeme formlarında görünmez. Eski ay kayıtları ve raporları silinmez.',
+                  style: TextStyle(color: AppColors.mutedText),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Vazgeç'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Pasife Al'),
+                  ),
+                ],
+              );
+            },
+          ) ??
+          false;
+    }
+
+    if (!confirmed) {
+      return;
+    }
+
+    final success = await ref
+        .read(employeeControllerProvider.notifier)
+        .setActive(employee: employee, active: nextActive, updatedBy: appUser);
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? nextActive
+                    ? 'Personel tekrar aktif edildi.'
+                    : 'Personel pasife alındı. Eski kayıtlar korunur.'
+              : 'Personel durumu güncellenemedi.',
+        ),
       ),
     );
   }
@@ -427,6 +462,33 @@ class _EmployeeTile extends ConsumerWidget {
       SnackBar(
         content: Text(
           success ? 'Maaş baremi güncellendi.' : 'Maaş baremi güncellenemedi.',
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.active});
+
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: active
+            ? AppColors.primary.withOpacity(0.12)
+            : AppColors.expense.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        active ? 'Aktif' : 'Pasif',
+        style: TextStyle(
+          color: active ? AppColors.primary : AppColors.expense,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
         ),
       ),
     );
