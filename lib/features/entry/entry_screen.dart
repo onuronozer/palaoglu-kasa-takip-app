@@ -132,6 +132,15 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                     ),
                     const SizedBox(height: 14),
                   ],
+                  if (widget.entryType == TransactionTypes.komisyon) ...[
+                    PaymentSourceSelector(
+                      selected: _paymentSource,
+                      onChanged: (value) {
+                        setState(() => _paymentSource = value);
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   if (widget.entryType == TransactionTypes.borc) ...[
                     TextField(
                       controller: _personController,
@@ -280,6 +289,8 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
         return _selectedCategory ?? '';
       case TransactionTypes.isci:
         return AppCategories.isci;
+      case TransactionTypes.komisyon:
+        return AppCategories.komisyon;
       case TransactionTypes.banka:
         return AppCategories.banka;
       case TransactionTypes.borc:
@@ -301,7 +312,8 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
 
   String _paymentSourceForSave() {
     if (widget.entryType == TransactionTypes.masraf ||
-        widget.entryType == TransactionTypes.isci) {
+        widget.entryType == TransactionTypes.isci ||
+        widget.entryType == TransactionTypes.komisyon) {
       return _paymentSource;
     }
     return PaymentSources.cash;
@@ -315,6 +327,8 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
         return 'Masraf Gir';
       case TransactionTypes.isci:
         return 'İşçi Ödemesi Gir';
+      case TransactionTypes.komisyon:
+        return 'İşletme Komisyonu Gir';
       case TransactionTypes.banka:
         return 'Bankaya Yatan Gir';
       case TransactionTypes.borc:

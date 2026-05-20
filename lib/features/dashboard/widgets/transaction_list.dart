@@ -198,7 +198,8 @@ class _TransactionTile extends StatelessWidget {
                 ),
               ),
               if (transaction.type == TransactionTypes.masraf ||
-                  transaction.type == TransactionTypes.isci) ...[
+                  transaction.type == TransactionTypes.isci ||
+                  transaction.type == TransactionTypes.komisyon) ...[
                 const SizedBox(height: 3),
                 Text(
                   transaction.paymentSourceLabel,
@@ -237,6 +238,8 @@ class _TransactionTile extends StatelessWidget {
       case TransactionTypes.masraf:
       case TransactionTypes.isci:
         return AppColors.expense;
+      case TransactionTypes.komisyon:
+        return AppColors.primary;
       case TransactionTypes.banka:
         return AppColors.bank;
       case TransactionTypes.borc:
@@ -254,6 +257,8 @@ class _TransactionTile extends StatelessWidget {
         return Icons.receipt_long;
       case TransactionTypes.isci:
         return Icons.badge_outlined;
+      case TransactionTypes.komisyon:
+        return Icons.percent_outlined;
       case TransactionTypes.banka:
         return Icons.account_balance;
       case TransactionTypes.borc:

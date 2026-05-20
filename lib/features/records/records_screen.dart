@@ -243,7 +243,8 @@ class _RecordCard extends StatelessWidget {
           const SizedBox(height: 10),
           _DetailLine(label: 'Kategori / Kişi', value: record.subjectLabel),
           if (record.type == TransactionTypes.masraf ||
-              record.type == TransactionTypes.isci)
+              record.type == TransactionTypes.isci ||
+              record.type == TransactionTypes.komisyon)
             _DetailLine(
               label: 'Ödeme kaynağı',
               value: record.paymentSourceLabel,
@@ -276,6 +277,8 @@ class _RecordCard extends StatelessWidget {
       case TransactionTypes.masraf:
       case TransactionTypes.isci:
         return AppColors.expense;
+      case TransactionTypes.komisyon:
+        return AppColors.primary;
       case TransactionTypes.banka:
         return AppColors.bank;
       case TransactionTypes.borc:
@@ -293,6 +296,8 @@ class _RecordCard extends StatelessWidget {
         return Icons.receipt_long;
       case TransactionTypes.isci:
         return Icons.badge_outlined;
+      case TransactionTypes.komisyon:
+        return Icons.percent_outlined;
       case TransactionTypes.banka:
         return Icons.account_balance;
       case TransactionTypes.borc:

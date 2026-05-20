@@ -20,6 +20,10 @@ class FinancialSummary {
     required this.personalPaidEmployees,
     required this.bankPaidMasraf,
     required this.bankPaidEmployees,
+    required this.businessCommissionPayments,
+    required this.cashPaidCommission,
+    required this.personalPaidCommission,
+    required this.bankPaidCommission,
   });
 
   final double todayCiro;
@@ -36,15 +40,32 @@ class FinancialSummary {
   final double personalPaidEmployees;
   final double bankPaidMasraf;
   final double bankPaidEmployees;
+  final double businessCommissionPayments;
+  final double cashPaidCommission;
+  final double personalPaidCommission;
+  final double bankPaidCommission;
 
   double get totalExpense => monthlyMasraf + employeePayments;
   double get profitLoss => monthlyCiro - monthlyMasraf - employeePayments;
+  double get businessCommission => profitLoss <= 0 ? 0 : profitLoss / 2;
+  double get businessCommissionRemaining =>
+      businessCommission - businessCommissionPayments;
+  double get businessCommissionDue => math.max(0, businessCommissionRemaining);
+  double get businessCommissionOverPaid =>
+      math.max(0, -businessCommissionRemaining);
   double get cashOnHand =>
-      monthlyCiro - cashPaidMasraf - cashPaidEmployees - bankDeposits;
+      monthlyCiro -
+      cashPaidMasraf -
+      cashPaidEmployees -
+      cashPaidCommission -
+      bankDeposits;
   double get remainingDebt => debtGiven - debtPaid;
-  double get personalPaidTotal => personalPaidMasraf + personalPaidEmployees;
-  double get bankPaidTotal => bankPaidMasraf + bankPaidEmployees;
-  double get cashPaidTotal => cashPaidMasraf + cashPaidEmployees;
+  double get personalPaidTotal =>
+      personalPaidMasraf + personalPaidEmployees + personalPaidCommission;
+  double get bankPaidTotal =>
+      bankPaidMasraf + bankPaidEmployees + bankPaidCommission;
+  double get cashPaidTotal =>
+      cashPaidMasraf + cashPaidEmployees + cashPaidCommission;
 }
 
 class ExpenseCategorySummary {
@@ -128,6 +149,10 @@ class ReportUtils {
     var personalPaidEmployees = 0.0;
     var bankPaidMasraf = 0.0;
     var bankPaidEmployees = 0.0;
+    var businessCommissionPayments = 0.0;
+    var cashPaidCommission = 0.0;
+    var personalPaidCommission = 0.0;
+    var bankPaidCommission = 0.0;
 
     for (final transaction in transactions) {
       if (transaction.type == TransactionTypes.ciro) {
@@ -165,6 +190,17 @@ class ReportUtils {
         }
       }
 
+      if (transaction.type == TransactionTypes.komisyon) {
+        businessCommissionPayments += transaction.amount;
+        if (transaction.paymentSource == PaymentSources.personal) {
+          personalPaidCommission += transaction.amount;
+        } else if (transaction.paymentSource == PaymentSources.bank) {
+          bankPaidCommission += transaction.amount;
+        } else {
+          cashPaidCommission += transaction.amount;
+        }
+      }
+
       if (transaction.type == TransactionTypes.banka) {
         bankDeposits += transaction.amount;
       }
@@ -193,6 +229,10 @@ class ReportUtils {
       personalPaidEmployees: personalPaidEmployees,
       bankPaidMasraf: bankPaidMasraf,
       bankPaidEmployees: bankPaidEmployees,
+      businessCommissionPayments: businessCommissionPayments,
+      cashPaidCommission: cashPaidCommission,
+      personalPaidCommission: personalPaidCommission,
+      bankPaidCommission: bankPaidCommission,
     );
   }
 

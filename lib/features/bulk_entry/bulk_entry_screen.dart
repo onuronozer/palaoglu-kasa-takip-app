@@ -815,7 +815,7 @@ class _MixedBulkCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Masraf, bankaya yatan, borç/alacak, ciro ve işçi ödemelerini aynı listede toplu kaydedebilirsin.',
+            'Masraf, bankaya yatan, borç/alacak, ciro, işçi ödemesi ve işletme komisyonunu aynı listede toplu kaydedebilirsin.',
             style: TextStyle(color: AppColors.mutedText, fontSize: 12),
           ),
           const SizedBox(height: 12),
@@ -943,6 +943,10 @@ class _MixedTransactionRow extends StatelessWidget {
                       child: Text('İşçi'),
                     ),
                     DropdownMenuItem(
+                      value: TransactionTypes.komisyon,
+                      child: Text('Komisyon'),
+                    ),
+                    DropdownMenuItem(
                       value: TransactionTypes.banka,
                       child: Text('Banka'),
                     ),
@@ -996,7 +1000,8 @@ class _MixedTransactionRow extends StatelessWidget {
                     },
             ),
           if (draft.type == TransactionTypes.masraf ||
-              draft.type == TransactionTypes.isci) ...[
+              draft.type == TransactionTypes.isci ||
+              draft.type == TransactionTypes.komisyon) ...[
             const SizedBox(height: 10),
             _PaymentSourceDropdown(
               value: draft.paymentSource,
@@ -1040,6 +1045,7 @@ class _MixedTransactionRow extends StatelessWidget {
           ],
           if (draft.type == TransactionTypes.masraf ||
               draft.type == TransactionTypes.isci ||
+              draft.type == TransactionTypes.komisyon ||
               draft.type == TransactionTypes.borc)
             const SizedBox(height: 10),
           TextField(
@@ -1135,6 +1141,11 @@ class _MixedTransactionDraft {
         paymentSource = PaymentSources.cash;
         descriptionController.text = 'Toplu işçi ödemesi';
         break;
+      case TransactionTypes.komisyon:
+        category = AppCategories.komisyon;
+        paymentSource = PaymentSources.cash;
+        descriptionController.text = 'Toplu işletme komisyonu';
+        break;
       case TransactionTypes.banka:
         category = AppCategories.banka;
         paymentSource = PaymentSources.cash;
@@ -1156,6 +1167,8 @@ class _MixedTransactionDraft {
         return category ?? AppCategories.expenseCategories.first;
       case TransactionTypes.isci:
         return AppCategories.isci;
+      case TransactionTypes.komisyon:
+        return AppCategories.komisyon;
       case TransactionTypes.banka:
         return AppCategories.banka;
       case TransactionTypes.borc:
@@ -1176,7 +1189,9 @@ class _MixedTransactionDraft {
   }
 
   String get paymentSourceForSave {
-    if (type == TransactionTypes.masraf || type == TransactionTypes.isci) {
+    if (type == TransactionTypes.masraf ||
+        type == TransactionTypes.isci ||
+        type == TransactionTypes.komisyon) {
       return paymentSource;
     }
     return PaymentSources.cash;

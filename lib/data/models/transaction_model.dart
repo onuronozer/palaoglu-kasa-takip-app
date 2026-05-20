@@ -39,9 +39,13 @@ class TransactionModel {
 
   String get paymentSourceLabel => PaymentSources.label(paymentSource);
 
+  bool get usesPaymentSource =>
+      type == TransactionTypes.masraf ||
+      type == TransactionTypes.isci ||
+      type == TransactionTypes.komisyon;
+
   bool get affectsCash =>
-      (type != TransactionTypes.masraf && type != TransactionTypes.isci) ||
-      paymentSource == PaymentSources.cash;
+      !usesPaymentSource || paymentSource == PaymentSources.cash;
 
   String get subjectLabel {
     if (type == TransactionTypes.isci || type == TransactionTypes.borc) {

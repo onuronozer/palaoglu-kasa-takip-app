@@ -4,10 +4,11 @@ class TransactionTypes {
   static const ciro = 'ciro';
   static const masraf = 'masraf';
   static const isci = 'isci';
+  static const komisyon = 'komisyon';
   static const banka = 'banka';
   static const borc = 'borc';
 
-  static const all = [ciro, masraf, isci, banka, borc];
+  static const all = [ciro, masraf, isci, komisyon, banka, borc];
 
   static String label(String type) {
     switch (type) {
@@ -17,6 +18,8 @@ class TransactionTypes {
         return 'Masraf';
       case isci:
         return 'İşçi Ödemesi';
+      case komisyon:
+        return 'İşletme Komisyonu';
       case banka:
         return 'Bankaya Yatan';
       case borc:
@@ -32,6 +35,7 @@ class AppCategories {
 
   static const ciro = 'Ciro';
   static const isci = 'İşçi Ödemesi';
+  static const komisyon = 'İşletme Komisyonu';
   static const banka = 'Bankaya Yatan';
 
   static const expenseCategories = [

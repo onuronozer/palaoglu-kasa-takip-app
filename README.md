@@ -246,18 +246,20 @@ firebase deploy --only firestore:rules
 6. Ciro kaydı ekle.
 7. Masraf kaydı ekle.
 8. İşçi ödemesi ekle.
-9. Bankaya yatan kaydı ekle.
-10. Borç / alacak kaydı ekle.
-11. Ana ekranda seçili ay kayıtlarının canlı göründüğünü kontrol et.
-12. Bir kaydı sil; `deleted_transactions` içine taşındığını kontrol et.
-13. Melek hesabıyla giriş yap; Personel Ayarları butonunun görünmediğini kontrol et.
-14. Admin ile yeni personel ekle.
-15. Maaş baremini değiştir.
-16. Aylık raporda barem aşımı ve kalan maaş durumlarını kontrol et.
-17. Masraf kategorilerinin progress/donut görünümünü kontrol et.
-18. İşçi ödemelerinin progress görünümünü kontrol et.
-19. WhatsApp Ay Özeti Gönder butonuyla WhatsApp bağlantısının açıldığını kontrol et.
-20. `flutter build web --release` komutunun başarılı olduğunu kontrol et.
+9. İşletme komisyonu ödemesi ekle.
+10. Bankaya yatan kaydı ekle.
+11. Borç / alacak kaydı ekle.
+12. Ana ekranda seçili ay kayıtlarının canlı göründüğünü kontrol et.
+13. Bir kaydı sil; `deleted_transactions` içine taşındığını kontrol et.
+14. Melek hesabıyla giriş yap; Personel Ayarları butonunun görünmediğini kontrol et.
+15. Admin ile yeni personel ekle.
+16. Maaş baremini değiştir.
+17. Aylık raporda barem aşımı ve kalan maaş durumlarını kontrol et.
+18. İşletme komisyonu hakediş, ödenen ve kalan tutarlarını kontrol et.
+19. Masraf kategorilerinin progress/donut görünümünü kontrol et.
+20. İşçi ödemelerinin progress görünümünü kontrol et.
+21. WhatsApp Ay Özeti Gönder butonuyla WhatsApp bağlantısının açıldığını kontrol et.
+22. `flutter build web --release` komutunun başarılı olduğunu kontrol et.
 
 ## Güncelleme Yayınlama
 
@@ -277,7 +279,7 @@ https://onuronozer.github.io/palaoglu-kasa-takip-app/
 
 ## Ödeme Kaynağı Mantığı
 
-Masraf ve işçi ödemelerinde ödeme kaynağı seçilir:
+Masraf, işçi ödemesi ve işletme komisyonu ödemelerinde ödeme kaynağı seçilir:
 
 ```text
 Kasadan Ödendi
@@ -290,7 +292,10 @@ Hesaplama:
 - Aylık Masraf: tüm masrafları toplar.
 - İşçi Ödemeleri: tüm işçi ödemelerini toplar.
 - Kar / Zarar: cirodan tüm masraf ve işçi ödemelerini düşer.
-- Kasa Nakit: cirodan sadece kasadan ödenen masraf ve işçi ödemelerini, ayrıca bankaya yatanı düşer.
+- İşletme Komisyonu: Kar / Zarar pozitifse yarısını gösterir, karı tekrar düşmez.
+- Komisyon Ödenen: ay içinde girilen işletme komisyonu ara/tam ödemelerini toplar.
+- Komisyon Kalan: işletme komisyonundan ödenen komisyonu düşer.
+- Kasa Nakit: cirodan sadece kasadan ödenen masraf, işçi ödemesi ve işletme komisyonunu, ayrıca bankaya yatanı düşer.
 
 Örnek:
 
@@ -313,6 +318,7 @@ Ana ekrandaki `Kayıt Dökümü` ekranından seçili ay kayıtları görülebili
 Ciro
 Masraf
 İşçi
+İşletme Komisyonu
 Banka
 Borç / Alacak
 ```
@@ -333,7 +339,7 @@ Ana ekrandaki `Toplu Giriş` ekranında:
 
 - Günlük ciro tutarları gün gün yazılabilir.
 - İşçi ödemeleri satır satır eklenebilir.
-- Karışık toplu giriş ile ciro, masraf, işçi, banka, borç/alacak kayıtları aynı ekranda tek seferde kaydedilebilir.
+- Karışık toplu giriş ile ciro, masraf, işçi, işletme komisyonu, banka, borç/alacak kayıtları aynı ekranda tek seferde kaydedilebilir.
 
 ## Palaoğlu Tarım Modülü
 

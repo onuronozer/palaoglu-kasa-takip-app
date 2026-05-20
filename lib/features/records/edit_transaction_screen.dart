@@ -142,6 +142,10 @@ class _EditTransactionFormState extends ConsumerState<_EditTransactionForm> {
                         child: Text('İşçi Ödemesi'),
                       ),
                       DropdownMenuItem(
+                        value: TransactionTypes.komisyon,
+                        child: Text('İşletme Komisyonu'),
+                      ),
+                      DropdownMenuItem(
                         value: TransactionTypes.banka,
                         child: Text('Bankaya Yatan'),
                       ),
@@ -218,6 +222,15 @@ class _EditTransactionFormState extends ConsumerState<_EditTransactionForm> {
                       },
                     ),
                     const SizedBox(height: 14),
+                    PaymentSourceSelector(
+                      selected: _paymentSource,
+                      onChanged: (value) {
+                        setState(() => _paymentSource = value);
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  if (_type == TransactionTypes.komisyon) ...[
                     PaymentSourceSelector(
                       selected: _paymentSource,
                       onChanged: (value) {
@@ -372,6 +385,9 @@ class _EditTransactionFormState extends ConsumerState<_EditTransactionForm> {
       case TransactionTypes.isci:
         _category = AppCategories.isci;
         break;
+      case TransactionTypes.komisyon:
+        _category = AppCategories.komisyon;
+        break;
       case TransactionTypes.banka:
         _category = AppCategories.banka;
         break;
@@ -389,6 +405,8 @@ class _EditTransactionFormState extends ConsumerState<_EditTransactionForm> {
         return _category ?? AppCategories.expenseCategories.first;
       case TransactionTypes.isci:
         return AppCategories.isci;
+      case TransactionTypes.komisyon:
+        return AppCategories.komisyon;
       case TransactionTypes.banka:
         return AppCategories.banka;
       case TransactionTypes.borc:
@@ -409,7 +427,9 @@ class _EditTransactionFormState extends ConsumerState<_EditTransactionForm> {
   }
 
   String _paymentSourceForSave() {
-    if (_type == TransactionTypes.masraf || _type == TransactionTypes.isci) {
+    if (_type == TransactionTypes.masraf ||
+        _type == TransactionTypes.isci ||
+        _type == TransactionTypes.komisyon) {
       return _paymentSource;
     }
     return PaymentSources.cash;

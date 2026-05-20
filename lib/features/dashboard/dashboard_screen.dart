@@ -329,6 +329,9 @@ class _MetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final commissionRemaining = summary.businessCommissionOverPaid > 0
+        ? 'Fazla ${MoneyUtils.format(summary.businessCommissionOverPaid)}'
+        : MoneyUtils.format(summary.businessCommissionDue);
     final metrics = [
       MetricCard(
         title: 'Bugünkü Ciro',
@@ -371,6 +374,26 @@ class _MetricGrid extends StatelessWidget {
         value: MoneyUtils.format(summary.profitLoss),
         icon: Icons.analytics_outlined,
         color: summary.profitLoss >= 0 ? AppColors.primary : AppColors.expense,
+      ),
+      MetricCard(
+        title: 'İşletme Komisyonu',
+        value: MoneyUtils.format(summary.businessCommission),
+        icon: Icons.percent_outlined,
+        color: AppColors.primary,
+      ),
+      MetricCard(
+        title: 'Komisyon Ödenen',
+        value: MoneyUtils.format(summary.businessCommissionPayments),
+        icon: Icons.payments_outlined,
+        color: AppColors.warning,
+      ),
+      MetricCard(
+        title: 'Komisyon Kalan',
+        value: commissionRemaining,
+        icon: Icons.assignment_turned_in_outlined,
+        color: summary.businessCommissionOverPaid > 0
+            ? AppColors.warning
+            : AppColors.turquoise,
       ),
       MetricCard(
         title: 'Kasa Nakit',
@@ -439,6 +462,12 @@ class _ActionGrid extends StatelessWidget {
         icon: Icons.badge_outlined,
         color: AppColors.warning,
         onTap: () => context.push('/entry/isci?month=$monthKey'),
+      ),
+      ActionCard(
+        title: 'Komisyon Gir',
+        icon: Icons.percent_outlined,
+        color: AppColors.primary,
+        onTap: () => context.push('/entry/komisyon?month=$monthKey'),
       ),
       ActionCard(
         title: 'Bankaya Yatan',

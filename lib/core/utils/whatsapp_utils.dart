@@ -11,6 +11,9 @@ class WhatsAppUtils {
     required FinancialSummary summary,
     required List<EmployeeSalarySummary> employeeSummaries,
   }) {
+    final commissionRemaining = summary.businessCommissionOverPaid > 0
+        ? 'Fazla ${MoneyUtils.format(summary.businessCommissionOverPaid)}'
+        : MoneyUtils.format(summary.businessCommissionDue);
     final buffer = StringBuffer()
       ..writeln('Palaoğlu Kasa Takip')
       ..writeln('$monthLabel Özeti')
@@ -22,6 +25,13 @@ class WhatsAppUtils {
       )
       ..writeln('Bankaya Yatan: ${MoneyUtils.format(summary.bankDeposits)}')
       ..writeln('Kar / Zarar: ${MoneyUtils.format(summary.profitLoss)}')
+      ..writeln(
+        'İşletme Komisyonu: ${MoneyUtils.format(summary.businessCommission)}',
+      )
+      ..writeln(
+        'Komisyon Ödenen: ${MoneyUtils.format(summary.businessCommissionPayments)}',
+      )
+      ..writeln('Komisyon Kalan: $commissionRemaining')
       ..writeln('Kasa Nakit: ${MoneyUtils.format(summary.cashOnHand)}')
       ..writeln('Kasadan Ödenen: ${MoneyUtils.format(summary.cashPaidTotal)}')
       ..writeln('Şahsi Ödenen: ${MoneyUtils.format(summary.personalPaidTotal)}')

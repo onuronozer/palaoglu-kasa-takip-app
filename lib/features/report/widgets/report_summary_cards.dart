@@ -12,6 +12,9 @@ class ReportSummaryCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final commissionRemaining = summary.businessCommissionOverPaid > 0
+        ? 'Fazla ${MoneyUtils.format(summary.businessCommissionOverPaid)}'
+        : MoneyUtils.format(summary.businessCommissionDue);
     final cards = [
       MetricCard(
         title: 'Toplam Ciro',
@@ -42,6 +45,26 @@ class ReportSummaryCards extends StatelessWidget {
         value: MoneyUtils.format(summary.profitLoss),
         icon: Icons.analytics_outlined,
         color: summary.profitLoss >= 0 ? AppColors.primary : AppColors.expense,
+      ),
+      MetricCard(
+        title: 'İşletme Komisyonu',
+        value: MoneyUtils.format(summary.businessCommission),
+        icon: Icons.percent_outlined,
+        color: AppColors.primary,
+      ),
+      MetricCard(
+        title: 'Komisyon Ödenen',
+        value: MoneyUtils.format(summary.businessCommissionPayments),
+        icon: Icons.payments_outlined,
+        color: AppColors.warning,
+      ),
+      MetricCard(
+        title: 'Komisyon Kalan',
+        value: commissionRemaining,
+        icon: Icons.assignment_turned_in_outlined,
+        color: summary.businessCommissionOverPaid > 0
+            ? AppColors.warning
+            : AppColors.turquoise,
       ),
       MetricCard(
         title: 'Kasa Nakit',
