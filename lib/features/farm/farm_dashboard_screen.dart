@@ -38,23 +38,6 @@ class FarmDashboardScreen extends ConsumerWidget {
         workerWorksState.valueOrNull ?? const <FarmWorkerWorkModel>[];
     final workerPayments =
         workerPaymentsState.valueOrNull ?? const <FarmWorkerPaymentModel>[];
-    final loading =
-        merchantsState.isLoading && merchantsState.valueOrNull == null ||
-        salesState.isLoading && salesState.valueOrNull == null ||
-        paymentsState.isLoading && paymentsState.valueOrNull == null ||
-        expensesState.isLoading && expensesState.valueOrNull == null ||
-        workersState.isLoading && workersState.valueOrNull == null ||
-        workerWorksState.isLoading && workerWorksState.valueOrNull == null ||
-        workerPaymentsState.isLoading &&
-            workerPaymentsState.valueOrNull == null;
-    final hasError =
-        merchantsState.hasError ||
-        salesState.hasError ||
-        paymentsState.hasError ||
-        expensesState.hasError ||
-        workersState.hasError ||
-        workerWorksState.hasError ||
-        workerPaymentsState.hasError;
 
     final totalSales = sales.fold<double>(
       0,
@@ -87,24 +70,16 @@ class FarmDashboardScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Palaoğlu Tarım'),
-        leading: IconButton(
-          tooltip: 'İşletmelerim',
-          icon: const Icon(Icons.apps_outlined),
-          onPressed: () => context.go('/'),
-        ),
-      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _HeaderCard(loading: loading, hasError: hasError),
+                  const _HeaderCard(),
                   const SizedBox(height: 16),
                   GridView(
                     shrinkWrap: true,
@@ -178,54 +153,57 @@ class FarmDashboardScreen extends ConsumerWidget {
 }
 
 class _HeaderCard extends StatelessWidget {
-  const _HeaderCard({required this.loading, required this.hasError});
-
-  final bool loading;
-  final bool hasError;
+  const _HeaderCard();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.surfaceAlt, AppColors.surface],
+        ),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.turquoise.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(17),
-            ),
-            child: const Icon(
-              Icons.agriculture_outlined,
-              color: AppColors.turquoise,
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.turquoise.withOpacity(0.1),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Tarım Takip',
-                  style: Theme.of(context).textTheme.headlineMedium,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.turquoise.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(19),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  hasError
-                      ? 'Bazı veriler okunamadı.'
-                      : loading
-                      ? 'Veriler yükleniyor...'
-                      : 'Satış, tahsilat, tüccar, işçi ve bahçe giderleri.',
-                  style: const TextStyle(color: AppColors.mutedText),
+                child: const Icon(
+                  Icons.agriculture_outlined,
+                  color: AppColors.turquoise,
                 ),
-              ],
-            ),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => context.go('/'),
+                icon: const Icon(Icons.apps_outlined, size: 18),
+                label: const Text('İşletmelerim'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'Palaoğlu Tarım',
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
         ],
       ),

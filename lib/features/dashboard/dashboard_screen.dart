@@ -271,11 +271,6 @@ class _Header extends ConsumerWidget {
             'Palaoğlu Kıraathanesi',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Kasanız net, işleriniz kontrol altında.',
-            style: TextStyle(color: AppColors.mutedText, fontSize: 14),
-          ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,
