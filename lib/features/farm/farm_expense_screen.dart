@@ -163,9 +163,7 @@ class _FarmExpenseScreenState extends ConsumerState<FarmExpenseScreen> {
     }
 
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .addExpense(
+      await ref.read(farmRepositoryProvider).addExpense(
             FarmExpenseModel(
               id: '',
               date: AppDateUtils.dateKey(_selectedDate),
@@ -566,6 +564,25 @@ class _InfoCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StateCard extends StatelessWidget {
+  const _StateCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(message, style: const TextStyle(color: AppColors.mutedText)),
     );
   }
 }
