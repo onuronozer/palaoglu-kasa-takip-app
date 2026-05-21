@@ -7,6 +7,7 @@ class FarmWorkerPaymentModel {
     required this.date,
     required this.amount,
     required this.description,
+    this.seasonYear = 0,
     this.createdAt,
     this.updatedAt,
   });
@@ -16,8 +17,16 @@ class FarmWorkerPaymentModel {
   final String date;
   final double amount;
   final String description;
+  final int seasonYear;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  int get resolvedSeasonYear {
+    if (seasonYear > 0) {
+      return seasonYear;
+    }
+    return _seasonFromDateKey(date);
+  }
 
   factory FarmWorkerPaymentModel.fromDoc(
     DocumentSnapshot<Map<String, dynamic>> doc,
@@ -29,6 +38,7 @@ class FarmWorkerPaymentModel {
       date: data['tarih'] as String? ?? '',
       amount: _doubleFromFirestore(data['odenen_tutar']),
       description: data['aciklama'] as String? ?? '',
+      seasonYear: _intFromFirestore(data['sezon_yili']),
       createdAt: _dateFromFirestore(data['createdAt']),
       updatedAt: _dateFromFirestore(data['updatedAt']),
     );
@@ -40,6 +50,7 @@ class FarmWorkerPaymentModel {
     String? date,
     double? amount,
     String? description,
+    int? seasonYear,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -49,6 +60,7 @@ class FarmWorkerPaymentModel {
       date: date ?? this.date,
       amount: amount ?? this.amount,
       description: description ?? this.description,
+      seasonYear: seasonYear ?? this.seasonYear,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -61,6 +73,7 @@ class FarmWorkerPaymentModel {
       'tarih': date,
       'odenen_tutar': amount,
       'aciklama': description,
+      'sezon_yili': resolvedSeasonYear,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -72,6 +85,7 @@ class FarmWorkerPaymentModel {
       'tarih': date,
       'odenen_tutar': amount,
       'aciklama': description,
+      'sezon_yili': resolvedSeasonYear,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
@@ -97,5 +111,22 @@ class FarmWorkerPaymentModel {
       return value.toDouble();
     }
     return 0;
+  }
+
+  static int _intFromFirestore(Object? value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return 0;
+  }
+
+  static int _seasonFromDateKey(String value) {
+    if (value.length >= 4) {
+      return int.tryParse(value.substring(0, 4)) ?? DateTime.now().year;
+    }
+    return DateTime.now().year;
   }
 }

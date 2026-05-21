@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/farm_worker_utils.dart';
 import '../../core/utils/money_utils.dart';
+import '../../data/models/farm_field_model.dart';
 import '../../data/models/farm_worker_model.dart';
 import '../../data/models/farm_worker_payment_model.dart';
 import '../../data/models/farm_worker_work_model.dart';
@@ -32,6 +33,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
   int _workDay = DateTime.now().day;
   int _paymentDay = DateTime.now().day;
   String? _workWorkerId;
+  String? _workFieldId;
   String? _paymentWorkerId;
   bool _isSaving = false;
 
@@ -50,21 +52,30 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
   @override
   Widget build(BuildContext context) {
     final workersState = ref.watch(farmWorkersProvider);
+    final fieldsState = ref.watch(activeFarmFieldsProvider);
     final worksState = ref.watch(farmWorkerWorksProvider);
     final paymentsState = ref.watch(farmWorkerPaymentsProvider);
 
     final workers = workersState.valueOrNull ?? const <FarmWorkerModel>[];
     final activeWorkers = workers.where((worker) => worker.active).toList();
+    final fields = fieldsState.valueOrNull ?? const <FarmFieldModel>[];
     final works = worksState.valueOrNull ?? const <FarmWorkerWorkModel>[];
     final payments =
         paymentsState.valueOrNull ?? const <FarmWorkerPaymentModel>[];
+    final seasonWorks = works
+        .where((work) => work.resolvedSeasonYear == _selectedMonth.year)
+        .toList();
+    final seasonPayments = payments
+        .where((payment) => payment.resolvedSeasonYear == _selectedMonth.year)
+        .toList();
     final summaries = FarmWorkerUtils.summaries(
       workers: workers,
-      works: works,
-      payments: payments,
+      works: seasonWorks,
+      payments: seasonPayments,
     );
     final loading =
         workersState.isLoading && workersState.valueOrNull == null ||
+        fieldsState.isLoading && fieldsState.valueOrNull == null ||
         worksState.isLoading && worksState.valueOrNull == null ||
         paymentsState.isLoading && paymentsState.valueOrNull == null;
 
@@ -106,21 +117,25 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                   const SizedBox(height: 16),
                   _WorkEntryCard(
                     workers: activeWorkers,
+                    fields: fields,
                     selectedMonth: _selectedMonth,
                     selectedDay: _workDay,
                     selectedWorkerId: _workWorkerId,
+                    selectedFieldId: _workFieldId,
                     dayCountController: _workDayCountController,
                     dailyWageController: _workDailyWageController,
                     descriptionController: _workDescriptionController,
                     enabled: !_isSaving,
                     onDayChanged: (day) => setState(() => _workDay = day),
+                    onFieldChanged: (fieldId) =>
+                        setState(() => _workFieldId = fieldId),
                     onWorkerChanged: (workerId) {
                       final worker = _workerById(activeWorkers, workerId);
                       setState(() {
                         _workWorkerId = workerId;
                         if (worker != null) {
-                          _workDailyWageController.text =
-                              worker.dailyWage.toStringAsFixed(0);
+                          _workDailyWageController.text = worker.dailyWage
+                              .toStringAsFixed(0);
                         }
                       });
                     },
@@ -151,9 +166,10 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                   ),
                   const SizedBox(height: 16),
                   _WorkerHistoryCard(
-                    works: works,
-                    payments: payments,
+                    works: seasonWorks,
+                    payments: seasonPayments,
                     workers: workers,
+                    fields: fields,
                     isSaving: _isSaving,
                     onEditWork: _showEditWorkDialog,
                     onDeleteWork: _confirmDeleteWork,
@@ -241,6 +257,8 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
               dailyWage: dailyWage,
               totalEarned: dayCount * dailyWage,
               description: _workDescriptionController.text.trim(),
+              seasonYear: _selectedMonth.year,
+              fieldId: _workFieldId ?? '',
             ),
           );
       _workDayCountController.text = '1';
@@ -283,6 +301,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
               ),
               amount: amount,
               description: _paymentDescriptionController.text.trim(),
+              seasonYear: _selectedMonth.year,
             ),
           );
       _paymentAmountController.clear();
@@ -364,10 +383,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
       await ref
           .read(farmRepositoryProvider)
           .updateFarmWorker(
-            worker.copyWith(
-              fullName: result.name,
-              dailyWage: result.dailyWage,
-            ),
+            worker.copyWith(fullName: result.name, dailyWage: result.dailyWage),
           );
       _showSnack('İşçi güncellendi.');
     } catch (_) {
@@ -431,11 +447,13 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
   Future<void> _showEditWorkDialog(
     FarmWorkerWorkModel work,
     List<FarmWorkerModel> workers,
+    List<FarmFieldModel> fields,
   ) async {
     final date = AppDateUtils.dateFromKey(work.date);
     var month = DateTime(date.year, date.month);
     var day = date.day;
     var workerId = work.workerId;
+    var fieldId = work.fieldId;
     final dayCountController = TextEditingController(
       text: work.dayCount.toStringAsFixed(work.dayCount % 1 == 0 ? 0 : 1),
     );
@@ -475,17 +493,23 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                         month: month,
                         value: day,
                         enabled: true,
-                        onChanged: (value) =>
-                            setDialogState(() => day = value),
+                        onChanged: (value) => setDialogState(() => day = value),
                       ),
                       const SizedBox(height: 12),
                       _WorkerDropdown(
                         workers: workers,
                         selectedId: workerId,
                         enabled: true,
-                        onChanged: (value) => setDialogState(
-                          () => workerId = value ?? workerId,
-                        ),
+                        onChanged: (value) =>
+                            setDialogState(() => workerId = value ?? workerId),
+                      ),
+                      const SizedBox(height: 12),
+                      _FieldDropdown(
+                        fields: fields,
+                        selectedId: fieldId,
+                        enabled: true,
+                        onChanged: (value) =>
+                            setDialogState(() => fieldId = value ?? ''),
                       ),
                       const SizedBox(height: 12),
                       _NumberField(
@@ -505,8 +529,9 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: descriptionController,
-                        decoration:
-                            const InputDecoration(labelText: 'Açıklama'),
+                        decoration: const InputDecoration(
+                          labelText: 'Açıklama',
+                        ),
                       ),
                     ],
                   ),
@@ -519,16 +544,15 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                 ),
                 FilledButton(
                   onPressed: () {
-                    final dayCount = MoneyUtils.parse(
-                      dayCountController.text,
-                    );
+                    final dayCount = MoneyUtils.parse(dayCountController.text);
                     final dailyWage = MoneyUtils.parse(wageController.text);
                     Navigator.of(context).pop(
                       _WorkEditResult(
-                        workerId: workerId ?? '',
+                        workerId: workerId,
                         date: AppDateUtils.dateKey(
                           DateTime(month.year, month.month, day),
                         ),
+                        fieldId: fieldId,
                         dayCount: dayCount,
                         dailyWage: dailyWage,
                         description: descriptionController.text.trim(),
@@ -566,6 +590,8 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
             work.copyWith(
               workerId: result.workerId,
               date: result.date,
+              fieldId: result.fieldId,
+              seasonYear: AppDateUtils.dateFromKey(result.date).year,
               dayCount: result.dayCount,
               dailyWage: result.dailyWage,
               totalEarned: result.dayCount * result.dailyWage,
@@ -628,17 +654,15 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                         month: month,
                         value: day,
                         enabled: true,
-                        onChanged: (value) =>
-                            setDialogState(() => day = value),
+                        onChanged: (value) => setDialogState(() => day = value),
                       ),
                       const SizedBox(height: 12),
                       _WorkerDropdown(
                         workers: workers,
                         selectedId: workerId,
                         enabled: true,
-                        onChanged: (value) => setDialogState(
-                          () => workerId = value ?? workerId,
-                        ),
+                        onChanged: (value) =>
+                            setDialogState(() => workerId = value ?? workerId),
                       ),
                       const SizedBox(height: 12),
                       _NumberField(
@@ -651,8 +675,9 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: descriptionController,
-                        decoration:
-                            const InputDecoration(labelText: 'Açıklama'),
+                        decoration: const InputDecoration(
+                          labelText: 'Açıklama',
+                        ),
                       ),
                     ],
                   ),
@@ -666,7 +691,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(
                     _PaymentEditResult(
-                      workerId: workerId ?? '',
+                      workerId: workerId,
                       date: AppDateUtils.dateKey(
                         DateTime(month.year, month.month, day),
                       ),
@@ -704,6 +729,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
               date: result.date,
               amount: result.amount,
               description: result.description,
+              seasonYear: AppDateUtils.dateFromKey(result.date).year,
             ),
           );
       _showSnack('Ödeme güncellendi.');
@@ -879,28 +905,34 @@ class _AddWorkerCard extends StatelessWidget {
 class _WorkEntryCard extends StatelessWidget {
   const _WorkEntryCard({
     required this.workers,
+    required this.fields,
     required this.selectedMonth,
     required this.selectedDay,
     required this.selectedWorkerId,
+    required this.selectedFieldId,
     required this.dayCountController,
     required this.dailyWageController,
     required this.descriptionController,
     required this.enabled,
     required this.onDayChanged,
+    required this.onFieldChanged,
     required this.onWorkerChanged,
     required this.onChanged,
     required this.onSave,
   });
 
   final List<FarmWorkerModel> workers;
+  final List<FarmFieldModel> fields;
   final DateTime selectedMonth;
   final int selectedDay;
   final String? selectedWorkerId;
+  final String? selectedFieldId;
   final TextEditingController dayCountController;
   final TextEditingController dailyWageController;
   final TextEditingController descriptionController;
   final bool enabled;
   final ValueChanged<int> onDayChanged;
+  final ValueChanged<String?> onFieldChanged;
   final ValueChanged<String?> onWorkerChanged;
   final VoidCallback onChanged;
   final VoidCallback onSave;
@@ -930,6 +962,13 @@ class _WorkEntryCard extends StatelessWidget {
                   selectedId: selectedWorkerId,
                   enabled: enabled,
                   onChanged: onWorkerChanged,
+                ),
+                const SizedBox(height: 12),
+                _FieldDropdown(
+                  fields: fields,
+                  selectedId: selectedFieldId,
+                  enabled: enabled,
+                  onChanged: onFieldChanged,
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -1115,8 +1154,9 @@ class _WorkerSummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final remainingLabel = summary.isOverPaid ? 'Fazla ödeme' : 'Alacak';
-    final remainingAmount =
-        summary.isOverPaid ? summary.overPaid : summary.remaining;
+    final remainingAmount = summary.isOverPaid
+        ? summary.overPaid
+        : summary.remaining;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1187,6 +1227,7 @@ class _WorkerHistoryCard extends StatelessWidget {
     required this.works,
     required this.payments,
     required this.workers,
+    required this.fields,
     required this.isSaving,
     required this.onEditWork,
     required this.onDeleteWork,
@@ -1197,14 +1238,20 @@ class _WorkerHistoryCard extends StatelessWidget {
   final List<FarmWorkerWorkModel> works;
   final List<FarmWorkerPaymentModel> payments;
   final List<FarmWorkerModel> workers;
+  final List<FarmFieldModel> fields;
   final bool isSaving;
-  final void Function(FarmWorkerWorkModel work, List<FarmWorkerModel> workers)
-      onEditWork;
+  final void Function(
+    FarmWorkerWorkModel work,
+    List<FarmWorkerModel> workers,
+    List<FarmFieldModel> fields,
+  )
+  onEditWork;
   final ValueChanged<FarmWorkerWorkModel> onDeleteWork;
   final void Function(
     FarmWorkerPaymentModel payment,
     List<FarmWorkerModel> workers,
-  ) onEditPayment;
+  )
+  onEditPayment;
   final ValueChanged<FarmWorkerPaymentModel> onDeletePayment;
 
   @override
@@ -1212,6 +1259,7 @@ class _WorkerHistoryCard extends StatelessWidget {
     final workerNames = {
       for (final worker in workers) worker.id: worker.fullName,
     };
+    final fieldNames = {for (final field in fields) field.id: field.name};
     final movements = <_WorkerMovement>[
       for (final work in works) _WorkerMovement.work(work),
       for (final payment in payments) _WorkerMovement.payment(payment),
@@ -1228,8 +1276,12 @@ class _WorkerHistoryCard extends StatelessWidget {
                   _WorkerMovementTile(
                     movement: movement,
                     workerName: workerNames[movement.workerId] ?? 'Eski işçi',
+                    fieldName: movement.work == null
+                        ? ''
+                        : fieldNames[movement.work!.fieldId] ?? '',
                     isSaving: isSaving,
-                    onEditWork: () => onEditWork(movement.work!, workers),
+                    onEditWork: () =>
+                        onEditWork(movement.work!, workers, fields),
                     onDeleteWork: () => onDeleteWork(movement.work!),
                     onEditPayment: () =>
                         onEditPayment(movement.payment!, workers),
@@ -1245,6 +1297,7 @@ class _WorkerMovementTile extends StatelessWidget {
   const _WorkerMovementTile({
     required this.movement,
     required this.workerName,
+    required this.fieldName,
     required this.isSaving,
     required this.onEditWork,
     required this.onDeleteWork,
@@ -1254,6 +1307,7 @@ class _WorkerMovementTile extends StatelessWidget {
 
   final _WorkerMovement movement;
   final String workerName;
+  final String fieldName;
   final bool isSaving;
   final VoidCallback onEditWork;
   final VoidCallback onDeleteWork;
@@ -1269,8 +1323,13 @@ class _WorkerMovementTile extends StatelessWidget {
     final description = isWork
         ? movement.work!.description
         : movement.payment!.description;
+    final workLocation = fieldName.trim().isEmpty ? 'Genel' : fieldName;
     final subtitle = description.trim().isEmpty
-        ? '${movement.date} • $workerName'
+        ? isWork
+              ? '${movement.date} • $workerName • $workLocation'
+              : '${movement.date} • $workerName'
+        : isWork
+        ? '${movement.date} • $workerName • $workLocation • $description'
         : '${movement.date} • $workerName • $description';
     final amount = isWork
         ? movement.work!.totalEarned
@@ -1323,8 +1382,9 @@ class _WorkerMovementTile extends StatelessWidget {
           ),
           IconButton(
             tooltip: 'Sil',
-            onPressed:
-                isSaving ? null : (isWork ? onDeleteWork : onDeletePayment),
+            onPressed: isSaving
+                ? null
+                : (isWork ? onDeleteWork : onDeletePayment),
             icon: const Icon(Icons.delete_outline, color: AppColors.expense),
           ),
         ],
@@ -1362,7 +1422,8 @@ class _DayDropdown extends StatelessWidget {
         prefixIcon: const Icon(Icons.calendar_month_outlined),
       ),
       items: [
-        for (final day in days) DropdownMenuItem(value: day, child: Text('$day')),
+        for (final day in days)
+          DropdownMenuItem(value: day, child: Text('$day')),
       ],
       onChanged: enabled
           ? (value) {
@@ -1409,6 +1470,42 @@ class _WorkerDropdown extends StatelessWidget {
           ),
       ],
       onChanged: enabled ? onChanged : null,
+    );
+  }
+}
+
+class _FieldDropdown extends StatelessWidget {
+  const _FieldDropdown({
+    required this.fields,
+    required this.selectedId,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final List<FarmFieldModel> fields;
+  final String? selectedId;
+  final bool enabled;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = fields.any((field) => field.id == selectedId)
+        ? selectedId
+        : '';
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: const InputDecoration(
+        labelText: 'Tarla',
+        prefixIcon: Icon(Icons.landscape_outlined),
+      ),
+      items: [
+        const DropdownMenuItem(value: '', child: Text('Genel / tarla yok')),
+        for (final field in fields)
+          DropdownMenuItem(value: field.id, child: Text(field.name)),
+      ],
+      onChanged: enabled
+          ? (value) => onChanged(value == null || value.isEmpty ? null : value)
+          : null,
     );
   }
 }
@@ -1643,6 +1740,7 @@ class _WorkEditResult {
   const _WorkEditResult({
     required this.workerId,
     required this.date,
+    required this.fieldId,
     required this.dayCount,
     required this.dailyWage,
     required this.description,
@@ -1650,6 +1748,7 @@ class _WorkEditResult {
 
   final String workerId;
   final String date;
+  final String fieldId;
   final double dayCount;
   final double dailyWage;
   final String description;

@@ -60,7 +60,12 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
                         const _StateCard(message: 'Tüccarlar yükleniyor...'),
                     error: (_, __) =>
                         const _StateCard(message: 'Tüccarlar okunamadı.'),
-                    data: (merchants) => _MerchantList(merchants: merchants),
+                    data: (merchants) => _MerchantList(
+                      merchants: merchants,
+                      isSaving: _isSaving,
+                      onEdit: _showEditMerchantDialog,
+                      onDelete: _confirmDeleteMerchant,
+                    ),
                   ),
                 ],
               ),
@@ -88,6 +93,120 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
       _showSnack('Tüccar eklendi.');
     } catch (_) {
       _showSnack('Tüccar eklenemedi. İnternet bağlantısını kontrol edin.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<void> _showEditMerchantDialog(MerchantModel merchant) async {
+    final nameController = TextEditingController(text: merchant.fullName);
+    final phoneController = TextEditingController(text: merchant.phone);
+
+    final result = await showDialog<_MerchantEditResult>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text('Tüccarı Düzenle'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Ad soyad'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Telefon'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Vazgeç'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(
+                _MerchantEditResult(
+                  nameController.text.trim(),
+                  phoneController.text.trim(),
+                ),
+              ),
+              child: const Text('Kaydet'),
+            ),
+          ],
+        );
+      },
+    );
+
+    nameController.dispose();
+    phoneController.dispose();
+    if (result == null) {
+      return;
+    }
+    if (result.fullName.isEmpty) {
+      _showSnack('Tüccar adı boş olamaz.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await ref
+          .read(farmRepositoryProvider)
+          .updateMerchant(
+            merchant.copyWith(fullName: result.fullName, phone: result.phone),
+          );
+      _showSnack('Tüccar güncellendi.');
+    } catch (_) {
+      _showSnack('Tüccar güncellenemedi.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteMerchant(MerchantModel merchant) async {
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              backgroundColor: AppColors.surface,
+              title: const Text('Tüccarı sil'),
+              content: Text(
+                '${merchant.fullName} silinsin mi? Eski satış ve tahsilat kayıtları kalır.',
+                style: const TextStyle(color: AppColors.mutedText),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Vazgeç'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Sil'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+    if (!confirmed) {
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await ref.read(farmRepositoryProvider).deleteMerchant(merchant.id);
+      _showSnack('Tüccar silindi.');
+    } catch (_) {
+      _showSnack('Tüccar silinemedi.');
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -163,9 +282,17 @@ class _AddMerchantCard extends StatelessWidget {
 }
 
 class _MerchantList extends StatelessWidget {
-  const _MerchantList({required this.merchants});
+  const _MerchantList({
+    required this.merchants,
+    required this.isSaving,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   final List<MerchantModel> merchants;
+  final bool isSaving;
+  final ValueChanged<MerchantModel> onEdit;
+  final ValueChanged<MerchantModel> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +314,13 @@ class _MerchantList extends StatelessWidget {
               style: TextStyle(color: AppColors.mutedText),
             )
           else
-            for (final merchant in merchants) _MerchantTile(merchant: merchant),
+            for (final merchant in merchants)
+              _MerchantTile(
+                merchant: merchant,
+                isSaving: isSaving,
+                onEdit: () => onEdit(merchant),
+                onDelete: () => onDelete(merchant),
+              ),
         ],
       ),
     );
@@ -195,9 +328,17 @@ class _MerchantList extends StatelessWidget {
 }
 
 class _MerchantTile extends StatelessWidget {
-  const _MerchantTile({required this.merchant});
+  const _MerchantTile({
+    required this.merchant,
+    required this.isSaving,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   final MerchantModel merchant;
+  final bool isSaving;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -243,10 +384,27 @@ class _MerchantTile extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
+          IconButton(
+            tooltip: 'Düzenle',
+            onPressed: isSaving ? null : onEdit,
+            icon: const Icon(Icons.edit_outlined),
+          ),
+          IconButton(
+            tooltip: 'Sil',
+            onPressed: isSaving ? null : onDelete,
+            icon: const Icon(Icons.delete_outline, color: AppColors.expense),
+          ),
         ],
       ),
     );
   }
+}
+
+class _MerchantEditResult {
+  const _MerchantEditResult(this.fullName, this.phone);
+
+  final String fullName;
+  final String phone;
 }
 
 class _StateCard extends StatelessWidget {

@@ -42,23 +42,23 @@ service cloud.firestore {
     }
 
     match /tuccarlar/{merchantId} {
-      allow read, create, update: if activeUser();
-      allow delete: if false;
+      allow read, create, update, delete: if activeUser();
     }
 
     match /satislar/{saleId} {
-      allow read, create: if activeUser();
-      allow update, delete: if false;
+      allow read, create, update, delete: if activeUser();
     }
 
     match /tahsilatlar/{paymentId} {
-      allow read, create: if activeUser();
-      allow update, delete: if false;
+      allow read, create, update, delete: if activeUser();
     }
 
     match /giderler/{expenseId} {
-      allow read, create: if activeUser();
-      allow update, delete: if false;
+      allow read, create, update, delete: if activeUser();
+    }
+
+    match /tarim_tarlalar/{fieldId} {
+      allow read, create, update, delete: if activeUser();
     }
 
     match /tarim_isciler/{workerId} {

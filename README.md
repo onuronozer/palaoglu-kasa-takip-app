@@ -364,19 +364,26 @@ tarim_isciler
 tarim_isci_gunleri
 tarim_isci_odemeleri
 kayisi_cinsleri
+tarim_tarlalar
 ```
 
 Tarım özellikleri:
 
-- Tüccar ekleme ve cari bakiye takibi.
-- Satış girme: ürün, kayısı çeşidi, kg, kg fiyatı ve toplam tutar.
+- Tüccar ekleme, düzenleme ve silme; cari bakiye takibi.
+- Sezon seçimi: tarım dashboard ve raporlar 2026, 2027 gibi sezonlara göre süzülür.
+- Tarlalarım paneli: tarla adı, ada, parsel, metrekare, ağaç sayısı, ürün/cins notu, aktif/pasif, düzenleme ve silme.
+- Satış girme: ürün, kayısı çeşidi, tarla, kg, kg fiyatı ve toplam tutar.
 - Satış kaydı eklenince `tuccarlar/{id}.guncel_bakiye` otomatik artar.
+- Satış kaydı düzenlenir veya silinirse tüccar bakiyesi otomatik düzeltilir.
 - Tahsilat girme: alınan tutar tüccar bakiyesinden otomatik düşer.
-- Bahçe gideri girme: mazot, ilaç, gübre, budama, işçilik, su, elektrik.
+- Tahsilat kaydı düzenlenir veya silinirse tüccar bakiyesi otomatik düzeltilir.
+- Bahçe gideri girme: mazot, ilaç, gübre, budama, işçilik, su, elektrik; gider istenirse tarlaya bağlanabilir.
+- Gider kayıtları düzenlenebilir ve silinebilir.
 - Tarım işçi paneli: işçi ekleme, yevmiye belirleme, geldiği gün sayısı, ara/tam ödeme ve kalan alacak takibi.
+- Tarım işçi günleri tarlaya bağlanabilir; sezon sonunda hangi tarlada kaç işçi günü çalışıldığı görünür.
 - Tarım işçi kayıtlarında gün ve ödeme düzeltme/silme, işçiyi aktif/pasif yapma.
 - Kayısı cinsleri paneli: cins ekleme, düzeltme, silme ve aktif/pasif yapma.
-- Toplu giriş: satış, tahsilat ve gider satırları tek ekrandan kaydedilebilir.
-- Tarım raporu: satış cirosu, tahsilat, kalan alacak, net durum, ürün satışları, gider kategorileri, işçi hakedişleri ve tüccar cari dökümü.
+- Toplu giriş: satış, tahsilat ve gider satırları tek ekrandan kaydedilebilir; satış ve gider satırları tarlaya bağlanabilir.
+- Tarım raporu: sezonluk satış cirosu, tahsilat, kalan alacak, net durum, ürün satışları, gider kategorileri, tarla analizi, işçi hakedişleri ve tüccar cari dökümü.
 
 Firebase Rules yayınlanırken `firestore.rules` içindeki tarım koleksiyon kurallarının Firebase Console > Firestore > Rules ekranına eklenmesi gerekir.

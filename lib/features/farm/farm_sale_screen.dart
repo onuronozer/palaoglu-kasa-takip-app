@@ -6,6 +6,7 @@ import '../../core/constants/farm_categories.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/money_utils.dart';
+import '../../data/models/farm_field_model.dart';
 import '../../data/models/farm_sale_model.dart';
 import '../../data/models/merchant_model.dart';
 import '../../data/repositories/farm_repository.dart';
@@ -24,6 +25,7 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
   final _priceController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   String? _merchantId;
+  String? _fieldId;
   String _product = FarmProducts.kayisi;
   String? _variety = ApricotVarieties.all.first;
   bool _isSaving = false;
@@ -39,7 +41,11 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
   @override
   Widget build(BuildContext context) {
     final merchantsState = ref.watch(merchantsProvider);
+    final fieldsState = ref.watch(activeFarmFieldsProvider);
+    final salesState = ref.watch(farmSalesProvider);
     final varietiesState = ref.watch(farmApricotVarietiesProvider);
+    final merchants = merchantsState.valueOrNull ?? const <MerchantModel>[];
+    final fields = fieldsState.valueOrNull ?? const <FarmFieldModel>[];
     final varietyDocs = varietiesState.valueOrNull;
     final apricotOptions = varietyDocs == null || varietyDocs.isEmpty
         ? ApricotVarieties.all
@@ -94,6 +100,19 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
                       selectedId: _merchantId,
                       enabled: !_isSaving,
                       onChanged: (value) => setState(() => _merchantId = value),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  fieldsState.when(
+                    loading: () =>
+                        const _StateCard(message: 'Tarlalar yükleniyor...'),
+                    error: (_, __) =>
+                        const _StateCard(message: 'Tarla listesi okunamadı.'),
+                    data: (fields) => _FieldDropdown(
+                      fields: fields,
+                      selectedId: _fieldId,
+                      enabled: !_isSaving,
+                      onChanged: (value) => setState(() => _fieldId = value),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -165,6 +184,22 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
                       _isSaving ? 'Kaydediliyor...' : 'Satışı Kaydet',
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  salesState.when(
+                    loading: () =>
+                        const _StateCard(message: 'Satışlar yükleniyor...'),
+                    error: (_, __) =>
+                        const _StateCard(message: 'Satış listesi okunamadı.'),
+                    data: (sales) => _SaleList(
+                      sales: sales,
+                      merchants: merchants,
+                      fields: fields,
+                      isSaving: _isSaving,
+                      onEdit: (sale) =>
+                          _showEditSaleDialog(sale, merchants, fields),
+                      onDelete: _confirmDeleteSale,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -206,6 +241,8 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
               amountKg: kg,
               priceTl: price,
               totalAmount: kg * price,
+              seasonYear: _selectedDate.year,
+              fieldId: _fieldId ?? '',
             ),
           );
       if (!mounted) {
@@ -225,6 +262,234 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
         _isSaving = false;
       });
     }
+  }
+
+  Future<void> _showEditSaleDialog(
+    FarmSaleModel sale,
+    List<MerchantModel> merchants,
+    List<FarmFieldModel> fields,
+  ) async {
+    var selectedDate = AppDateUtils.dateFromKey(sale.date);
+    var merchantId = sale.merchantId;
+    var fieldId = sale.fieldId;
+    var product = sale.productName.isEmpty
+        ? FarmProducts.kayisi
+        : sale.productName;
+    var variety = sale.productVariety;
+    final kgController = TextEditingController(
+      text: _formatNumber(sale.amountKg),
+    );
+    final priceController = TextEditingController(
+      text: _formatNumber(sale.priceTl),
+    );
+
+    final result = await showDialog<FarmSaleModel>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final apricotOptions = _activeApricotOptions();
+            final selectedVariety = apricotOptions.contains(variety)
+                ? variety
+                : null;
+            return AlertDialog(
+              backgroundColor: AppColors.surface,
+              title: const Text('Satışı Düzenle'),
+              content: SizedBox(
+                width: 420,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DateSelector(
+                        selectedDate: selectedDate,
+                        onChanged: (date) =>
+                            setDialogState(() => selectedDate = date),
+                      ),
+                      const SizedBox(height: 12),
+                      _MerchantDropdown(
+                        merchants: merchants,
+                        selectedId: merchantId,
+                        enabled: true,
+                        onChanged: (value) => setDialogState(
+                          () => merchantId = value ?? merchantId,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _FieldDropdown(
+                        fields: fields,
+                        selectedId: fieldId,
+                        enabled: true,
+                        onChanged: (value) =>
+                            setDialogState(() => fieldId = value ?? ''),
+                      ),
+                      const SizedBox(height: 12),
+                      CategorySelector(
+                        title: 'Ürün',
+                        options: FarmProducts.all,
+                        selected: product,
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setDialogState(() {
+                            product = value;
+                            variety = value == FarmProducts.kayisi
+                                ? apricotOptions.isEmpty
+                                      ? ''
+                                      : apricotOptions.first
+                                : '';
+                          });
+                        },
+                      ),
+                      if (product == FarmProducts.kayisi) ...[
+                        const SizedBox(height: 12),
+                        CategorySelector(
+                          title: 'Kayısı çeşidi',
+                          options: apricotOptions,
+                          selected: selectedVariety,
+                          onChanged: (value) =>
+                              setDialogState(() => variety = value ?? ''),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: kgController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Miktar kg',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: priceController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Kg fiyatı',
+                          prefixText: '₺ ',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Vazgeç'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final kg = MoneyUtils.parse(kgController.text);
+                    final price = MoneyUtils.parse(priceController.text);
+                    Navigator.of(context).pop(
+                      sale.copyWith(
+                        merchantId: merchantId,
+                        date: AppDateUtils.dateKey(selectedDate),
+                        productName: product,
+                        productVariety: product == FarmProducts.kayisi
+                            ? variety
+                            : '',
+                        amountKg: kg,
+                        priceTl: price,
+                        totalAmount: kg * price,
+                        seasonYear: selectedDate.year,
+                        fieldId: fieldId,
+                      ),
+                    );
+                  },
+                  child: const Text('Kaydet'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    kgController.dispose();
+    priceController.dispose();
+    if (result == null) {
+      return;
+    }
+    if (result.merchantId.isEmpty ||
+        result.amountKg <= 0 ||
+        result.priceTl <= 0 ||
+        (result.productName == FarmProducts.kayisi &&
+            result.productVariety.isEmpty)) {
+      _showSnack('Satış bilgisinde tüccar, ürün, kg ve fiyat doğru olmalı.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await ref.read(farmRepositoryProvider).updateSale(result);
+      _showSnack('Satış güncellendi.');
+    } catch (_) {
+      _showSnack('Satış güncellenemedi.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteSale(FarmSaleModel sale) async {
+    final confirmed = await _confirmDelete('Bu satış kaydı silinsin mi?');
+    if (!confirmed) {
+      return;
+    }
+    setState(() => _isSaving = true);
+    try {
+      await ref.read(farmRepositoryProvider).deleteSale(sale);
+      _showSnack('Satış silindi.');
+    } catch (_) {
+      _showSnack('Satış silinemedi.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<bool> _confirmDelete(String message) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              backgroundColor: AppColors.surface,
+              title: const Text('Kaydı sil'),
+              content: Text(
+                message,
+                style: const TextStyle(color: AppColors.mutedText),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Vazgeç'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Sil'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String? _validate(double kg, double price, List<String> apricotOptions) {
@@ -259,6 +524,174 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
         .map((variety) => variety.name)
         .where((name) => name.trim().isNotEmpty)
         .toList();
+  }
+}
+
+class _FieldDropdown extends StatelessWidget {
+  const _FieldDropdown({
+    required this.fields,
+    required this.selectedId,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final List<FarmFieldModel> fields;
+  final String? selectedId;
+  final bool enabled;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      value: fields.any((field) => field.id == selectedId) ? selectedId : '',
+      decoration: const InputDecoration(
+        labelText: 'Tarla',
+        prefixIcon: Icon(Icons.landscape_outlined),
+      ),
+      items: [
+        const DropdownMenuItem(value: '', child: Text('Genel / tarla yok')),
+        for (final field in fields)
+          DropdownMenuItem(value: field.id, child: Text(field.name)),
+      ],
+      onChanged: enabled
+          ? (value) => onChanged(value == null || value.isEmpty ? null : value)
+          : null,
+    );
+  }
+}
+
+class _SaleList extends StatelessWidget {
+  const _SaleList({
+    required this.sales,
+    required this.merchants,
+    required this.fields,
+    required this.isSaving,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final List<FarmSaleModel> sales;
+  final List<MerchantModel> merchants;
+  final List<FarmFieldModel> fields;
+  final bool isSaving;
+  final ValueChanged<FarmSaleModel> onEdit;
+  final ValueChanged<FarmSaleModel> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final merchantNames = {
+      for (final merchant in merchants) merchant.id: merchant.fullName,
+    };
+    final fieldNames = {for (final field in fields) field.id: field.name};
+    final shown = sales.take(25).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Son Satışlar', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          if (shown.isEmpty)
+            const Text(
+              'Henüz satış yok.',
+              style: TextStyle(color: AppColors.mutedText),
+            )
+          else
+            for (final sale in shown)
+              _SaleTile(
+                sale: sale,
+                merchantName: merchantNames[sale.merchantId] ?? 'Tüccar',
+                fieldName: fieldNames[sale.fieldId] ?? 'Genel',
+                isSaving: isSaving,
+                onEdit: () => onEdit(sale),
+                onDelete: () => onDelete(sale),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SaleTile extends StatelessWidget {
+  const _SaleTile({
+    required this.sale,
+    required this.merchantName,
+    required this.fieldName,
+    required this.isSaving,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final FarmSaleModel sale;
+  final String merchantName;
+  final String fieldName;
+  final bool isSaving;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  sale.productLabel,
+                  style: const TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${sale.date} • $merchantName • $fieldName • ${_formatNumber(sale.amountKg)} kg',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.mutedText,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  MoneyUtils.format(sale.totalAmount),
+                  style: const TextStyle(
+                    color: AppColors.income,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Düzenle',
+            onPressed: isSaving ? null : onEdit,
+            icon: const Icon(Icons.edit_outlined),
+          ),
+          IconButton(
+            tooltip: 'Sil',
+            onPressed: isSaving ? null : onDelete,
+            icon: const Icon(Icons.delete_outline, color: AppColors.expense),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -417,4 +850,11 @@ class _ErrorCard extends StatelessWidget {
       child: Text(message, style: const TextStyle(color: AppColors.text)),
     );
   }
+}
+
+String _formatNumber(double value) {
+  if (value % 1 == 0) {
+    return value.toStringAsFixed(0);
+  }
+  return value.toStringAsFixed(1);
 }

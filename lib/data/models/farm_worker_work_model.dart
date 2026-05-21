@@ -9,6 +9,8 @@ class FarmWorkerWorkModel {
     required this.dailyWage,
     required this.totalEarned,
     required this.description,
+    this.seasonYear = 0,
+    this.fieldId = '',
     this.createdAt,
     this.updatedAt,
   });
@@ -20,8 +22,17 @@ class FarmWorkerWorkModel {
   final double dailyWage;
   final double totalEarned;
   final String description;
+  final int seasonYear;
+  final String fieldId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  int get resolvedSeasonYear {
+    if (seasonYear > 0) {
+      return seasonYear;
+    }
+    return _seasonFromDateKey(date);
+  }
 
   factory FarmWorkerWorkModel.fromDoc(
     DocumentSnapshot<Map<String, dynamic>> doc,
@@ -35,6 +46,8 @@ class FarmWorkerWorkModel {
       dailyWage: _doubleFromFirestore(data['yevmiye']),
       totalEarned: _doubleFromFirestore(data['hakedis_tutari']),
       description: data['aciklama'] as String? ?? '',
+      seasonYear: _intFromFirestore(data['sezon_yili']),
+      fieldId: data['tarla_id'] as String? ?? '',
       createdAt: _dateFromFirestore(data['createdAt']),
       updatedAt: _dateFromFirestore(data['updatedAt']),
     );
@@ -48,6 +61,8 @@ class FarmWorkerWorkModel {
     double? dailyWage,
     double? totalEarned,
     String? description,
+    int? seasonYear,
+    String? fieldId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -59,6 +74,8 @@ class FarmWorkerWorkModel {
       dailyWage: dailyWage ?? this.dailyWage,
       totalEarned: totalEarned ?? this.totalEarned,
       description: description ?? this.description,
+      seasonYear: seasonYear ?? this.seasonYear,
+      fieldId: fieldId ?? this.fieldId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -73,6 +90,8 @@ class FarmWorkerWorkModel {
       'yevmiye': dailyWage,
       'hakedis_tutari': totalEarned,
       'aciklama': description,
+      'sezon_yili': resolvedSeasonYear,
+      'tarla_id': fieldId,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -86,6 +105,8 @@ class FarmWorkerWorkModel {
       'yevmiye': dailyWage,
       'hakedis_tutari': totalEarned,
       'aciklama': description,
+      'sezon_yili': resolvedSeasonYear,
+      'tarla_id': fieldId,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
@@ -111,5 +132,22 @@ class FarmWorkerWorkModel {
       return value.toDouble();
     }
     return 0;
+  }
+
+  static int _intFromFirestore(Object? value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return 0;
+  }
+
+  static int _seasonFromDateKey(String value) {
+    if (value.length >= 4) {
+      return int.tryParse(value.substring(0, 4)) ?? DateTime.now().year;
+    }
+    return DateTime.now().year;
   }
 }

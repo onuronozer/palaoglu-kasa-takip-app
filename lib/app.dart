@@ -14,6 +14,7 @@ import 'features/bulk_entry/bulk_entry_screen.dart';
 import 'features/farm/farm_bulk_entry_screen.dart';
 import 'features/farm/farm_dashboard_screen.dart';
 import 'features/farm/farm_expense_screen.dart';
+import 'features/farm/farm_field_screen.dart';
 import 'features/farm/farm_payment_screen.dart';
 import 'features/farm/farm_report_screen.dart';
 import 'features/farm/farm_sale_screen.dart';
@@ -133,6 +134,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/farm/expense',
         builder: (context, state) {
           return const AuthGate(child: FarmExpenseScreen());
+        },
+      ),
+      GoRoute(
+        path: '/farm/fields',
+        builder: (context, state) {
+          return const AuthGate(child: FarmFieldScreen());
         },
       ),
       GoRoute(

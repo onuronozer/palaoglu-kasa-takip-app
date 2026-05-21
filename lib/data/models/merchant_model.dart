@@ -17,6 +17,24 @@ class MerchantModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  MerchantModel copyWith({
+    String? id,
+    String? fullName,
+    String? phone,
+    double? currentBalance,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return MerchantModel(
+      id: id ?? this.id,
+      fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
+      currentBalance: currentBalance ?? this.currentBalance,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   factory MerchantModel.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
     return MerchantModel(
@@ -36,6 +54,14 @@ class MerchantModel {
       'telefon': phone,
       'guncel_bakiye': currentBalance,
       'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  Map<String, dynamic> toUpdateMap() {
+    return {
+      'ad_soyad': fullName,
+      'telefon': phone,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }

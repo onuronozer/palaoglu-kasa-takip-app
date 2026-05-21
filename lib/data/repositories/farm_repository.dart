@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/farm_apricot_variety_model.dart';
 import '../models/farm_expense_model.dart';
+import '../models/farm_field_model.dart';
 import '../models/farm_payment_model.dart';
 import '../models/farm_sale_model.dart';
 import '../models/farm_worker_model.dart';
@@ -13,6 +14,10 @@ import '../models/merchant_model.dart';
 
 final farmRepositoryProvider = Provider<FarmRepository>((ref) {
   return FarmRepository(FirebaseFirestore.instance);
+});
+
+final selectedFarmSeasonProvider = StateProvider<int>((ref) {
+  return DateTime.now().year;
 });
 
 final merchantsProvider = StreamProvider<List<MerchantModel>>((ref) {
@@ -31,28 +36,41 @@ final farmExpensesProvider = StreamProvider<List<FarmExpenseModel>>((ref) {
   return ref.watch(farmRepositoryProvider).watchExpenses();
 });
 
+final farmFieldsProvider = StreamProvider<List<FarmFieldModel>>((ref) {
+  return ref.watch(farmRepositoryProvider).watchFarmFields();
+});
+
+final activeFarmFieldsProvider = Provider<AsyncValue<List<FarmFieldModel>>>((
+  ref,
+) {
+  return ref
+      .watch(farmFieldsProvider)
+      .whenData((fields) => fields.where((field) => field.active).toList());
+});
+
 final farmWorkersProvider = StreamProvider<List<FarmWorkerModel>>((ref) {
   return ref.watch(farmRepositoryProvider).watchFarmWorkers();
 });
 
-final activeFarmWorkersProvider =
-    Provider<AsyncValue<List<FarmWorkerModel>>>((ref) {
-      return ref
-          .watch(farmWorkersProvider)
-          .whenData(
-            (workers) => workers.where((worker) => worker.active).toList(),
-          );
-    });
+final activeFarmWorkersProvider = Provider<AsyncValue<List<FarmWorkerModel>>>((
+  ref,
+) {
+  return ref
+      .watch(farmWorkersProvider)
+      .whenData((workers) => workers.where((worker) => worker.active).toList());
+});
 
-final farmWorkerWorksProvider =
-    StreamProvider<List<FarmWorkerWorkModel>>((ref) {
-      return ref.watch(farmRepositoryProvider).watchFarmWorkerWorks();
-    });
+final farmWorkerWorksProvider = StreamProvider<List<FarmWorkerWorkModel>>((
+  ref,
+) {
+  return ref.watch(farmRepositoryProvider).watchFarmWorkerWorks();
+});
 
-final farmWorkerPaymentsProvider =
-    StreamProvider<List<FarmWorkerPaymentModel>>((ref) {
-      return ref.watch(farmRepositoryProvider).watchFarmWorkerPayments();
-    });
+final farmWorkerPaymentsProvider = StreamProvider<List<FarmWorkerPaymentModel>>(
+  (ref) {
+    return ref.watch(farmRepositoryProvider).watchFarmWorkerPayments();
+  },
+);
 
 final farmApricotVarietiesProvider =
     StreamProvider<List<FarmApricotVarietyModel>>((ref) {
@@ -89,6 +107,9 @@ class FarmRepository {
 
   CollectionReference<Map<String, dynamic>> get _expenses =>
       _firestore.collection('giderler');
+
+  CollectionReference<Map<String, dynamic>> get _farmFields =>
+      _firestore.collection('tarim_tarlalar');
 
   CollectionReference<Map<String, dynamic>> get _farmWorkers =>
       _firestore.collection('tarim_isciler');
@@ -130,6 +151,19 @@ class FarmRepository {
     return _expenses.snapshots().map((snapshot) {
       final items = snapshot.docs.map(FarmExpenseModel.fromDoc).toList();
       items.sort((a, b) => b.date.compareTo(a.date));
+      return items;
+    });
+  }
+
+  Stream<List<FarmFieldModel>> watchFarmFields() {
+    return _farmFields.snapshots().map((snapshot) {
+      final items = snapshot.docs.map(FarmFieldModel.fromDoc).toList();
+      items.sort((a, b) {
+        if (a.active != b.active) {
+          return a.active ? -1 : 1;
+        }
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
       return items;
     });
   }
@@ -190,6 +224,14 @@ class FarmRepository {
     await _merchants.doc(id).set(merchant.toCreateMap());
   }
 
+  Future<void> updateMerchant(MerchantModel merchant) async {
+    await _merchants.doc(merchant.id).update(merchant.toUpdateMap());
+  }
+
+  Future<void> deleteMerchant(String id) async {
+    await _merchants.doc(id).delete();
+  }
+
   Future<void> addSale(FarmSaleModel sale) async {
     final id = sale.id.isEmpty ? Uuid().v4() : sale.id;
     final saleWithId = FarmSaleModel(
@@ -201,6 +243,8 @@ class FarmRepository {
       amountKg: sale.amountKg,
       priceTl: sale.priceTl,
       totalAmount: sale.totalAmount,
+      seasonYear: sale.resolvedSeasonYear,
+      fieldId: sale.fieldId,
     );
 
     await _firestore.runTransaction((transaction) async {
@@ -218,6 +262,68 @@ class FarmRepository {
     });
   }
 
+  Future<void> updateSale(FarmSaleModel sale) async {
+    await _firestore.runTransaction((transaction) async {
+      final saleRef = _sales.doc(sale.id);
+      final oldSaleSnapshot = await transaction.get(saleRef);
+      if (!oldSaleSnapshot.exists) {
+        throw StateError('Satış bulunamadı.');
+      }
+
+      final oldSale = FarmSaleModel.fromDoc(oldSaleSnapshot);
+      final oldMerchantRef = _merchants.doc(oldSale.merchantId);
+      final newMerchantRef = _merchants.doc(sale.merchantId);
+      final newMerchantSnapshot = await transaction.get(newMerchantRef);
+      final oldMerchantSnapshot = oldSale.merchantId == sale.merchantId
+          ? newMerchantSnapshot
+          : await transaction.get(oldMerchantRef);
+      if (!newMerchantSnapshot.exists) {
+        throw StateError('Tüccar bulunamadı.');
+      }
+
+      transaction.update(saleRef, sale.toUpdateMap());
+      if (oldSale.merchantId == sale.merchantId) {
+        transaction.update(newMerchantRef, {
+          'guncel_bakiye': FieldValue.increment(
+            sale.totalAmount - oldSale.totalAmount,
+          ),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        if (oldMerchantSnapshot.exists) {
+          transaction.update(oldMerchantRef, {
+            'guncel_bakiye': FieldValue.increment(-oldSale.totalAmount),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+        transaction.update(newMerchantRef, {
+          'guncel_bakiye': FieldValue.increment(sale.totalAmount),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    });
+  }
+
+  Future<void> deleteSale(FarmSaleModel sale) async {
+    await _firestore.runTransaction((transaction) async {
+      final saleRef = _sales.doc(sale.id);
+      final saleSnapshot = await transaction.get(saleRef);
+      if (!saleSnapshot.exists) {
+        return;
+      }
+      final currentSale = FarmSaleModel.fromDoc(saleSnapshot);
+      final merchantRef = _merchants.doc(currentSale.merchantId);
+      final merchantSnapshot = await transaction.get(merchantRef);
+      transaction.delete(saleRef);
+      if (merchantSnapshot.exists) {
+        transaction.update(merchantRef, {
+          'guncel_bakiye': FieldValue.increment(-currentSale.totalAmount),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    });
+  }
+
   Future<void> addPayment(FarmPaymentModel payment) async {
     final id = payment.id.isEmpty ? Uuid().v4() : payment.id;
     final paymentWithId = FarmPaymentModel(
@@ -225,6 +331,7 @@ class FarmRepository {
       merchantId: payment.merchantId,
       date: payment.date,
       amount: payment.amount,
+      seasonYear: payment.resolvedSeasonYear,
     );
 
     await _firestore.runTransaction((transaction) async {
@@ -242,6 +349,68 @@ class FarmRepository {
     });
   }
 
+  Future<void> updatePayment(FarmPaymentModel payment) async {
+    await _firestore.runTransaction((transaction) async {
+      final paymentRef = _payments.doc(payment.id);
+      final oldPaymentSnapshot = await transaction.get(paymentRef);
+      if (!oldPaymentSnapshot.exists) {
+        throw StateError('Tahsilat bulunamadı.');
+      }
+
+      final oldPayment = FarmPaymentModel.fromDoc(oldPaymentSnapshot);
+      final oldMerchantRef = _merchants.doc(oldPayment.merchantId);
+      final newMerchantRef = _merchants.doc(payment.merchantId);
+      final newMerchantSnapshot = await transaction.get(newMerchantRef);
+      final oldMerchantSnapshot = oldPayment.merchantId == payment.merchantId
+          ? newMerchantSnapshot
+          : await transaction.get(oldMerchantRef);
+      if (!newMerchantSnapshot.exists) {
+        throw StateError('Tüccar bulunamadı.');
+      }
+
+      transaction.update(paymentRef, payment.toUpdateMap());
+      if (oldPayment.merchantId == payment.merchantId) {
+        transaction.update(newMerchantRef, {
+          'guncel_bakiye': FieldValue.increment(
+            oldPayment.amount - payment.amount,
+          ),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        if (oldMerchantSnapshot.exists) {
+          transaction.update(oldMerchantRef, {
+            'guncel_bakiye': FieldValue.increment(oldPayment.amount),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+        transaction.update(newMerchantRef, {
+          'guncel_bakiye': FieldValue.increment(-payment.amount),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    });
+  }
+
+  Future<void> deletePayment(FarmPaymentModel payment) async {
+    await _firestore.runTransaction((transaction) async {
+      final paymentRef = _payments.doc(payment.id);
+      final paymentSnapshot = await transaction.get(paymentRef);
+      if (!paymentSnapshot.exists) {
+        return;
+      }
+      final currentPayment = FarmPaymentModel.fromDoc(paymentSnapshot);
+      final merchantRef = _merchants.doc(currentPayment.merchantId);
+      final merchantSnapshot = await transaction.get(merchantRef);
+      transaction.delete(paymentRef);
+      if (merchantSnapshot.exists) {
+        transaction.update(merchantRef, {
+          'guncel_bakiye': FieldValue.increment(currentPayment.amount),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    });
+  }
+
   Future<void> addExpense(FarmExpenseModel expense) async {
     final id = expense.id.isEmpty ? Uuid().v4() : expense.id;
     await _expenses
@@ -253,8 +422,38 @@ class FarmRepository {
             category: expense.category,
             amount: expense.amount,
             description: expense.description,
+            seasonYear: expense.resolvedSeasonYear,
+            fieldId: expense.fieldId,
           ).toCreateMap(),
         );
+  }
+
+  Future<void> updateExpense(FarmExpenseModel expense) async {
+    await _expenses.doc(expense.id).update(expense.toUpdateMap());
+  }
+
+  Future<void> deleteExpense(String id) async {
+    await _expenses.doc(id).delete();
+  }
+
+  Future<void> addFarmField(FarmFieldModel field) async {
+    final id = field.id.isEmpty ? Uuid().v4() : field.id;
+    await _farmFields.doc(id).set(field.copyWith(id: id).toCreateMap());
+  }
+
+  Future<void> updateFarmField(FarmFieldModel field) async {
+    await _farmFields.doc(field.id).update(field.toUpdateMap());
+  }
+
+  Future<void> setFarmFieldActive({
+    required FarmFieldModel field,
+    required bool active,
+  }) async {
+    await updateFarmField(field.copyWith(active: active));
+  }
+
+  Future<void> deleteFarmField(String id) async {
+    await _farmFields.doc(id).delete();
   }
 
   Future<void> addFarmWorker({
@@ -284,9 +483,7 @@ class FarmRepository {
 
   Future<void> addFarmWorkerWork(FarmWorkerWorkModel work) async {
     final id = work.id.isEmpty ? Uuid().v4() : work.id;
-    await _farmWorkerWorks
-        .doc(id)
-        .set(work.copyWith(id: id).toCreateMap());
+    await _farmWorkerWorks.doc(id).set(work.copyWith(id: id).toCreateMap());
   }
 
   Future<void> updateFarmWorkerWork(FarmWorkerWorkModel work) async {

@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/farm_worker_utils.dart';
 import '../../core/utils/money_utils.dart';
 import '../../data/models/farm_expense_model.dart';
+import '../../data/models/farm_field_model.dart';
 import '../../data/models/farm_payment_model.dart';
 import '../../data/models/farm_sale_model.dart';
 import '../../data/models/farm_worker_model.dart';
@@ -15,6 +16,7 @@ import '../../data/models/merchant_model.dart';
 import '../../data/repositories/farm_repository.dart';
 import '../dashboard/widgets/action_card.dart';
 import '../dashboard/widgets/metric_card.dart';
+import 'widgets/farm_season_selector.dart';
 
 class FarmDashboardScreen extends ConsumerWidget {
   const FarmDashboardScreen({super.key});
@@ -25,6 +27,7 @@ class FarmDashboardScreen extends ConsumerWidget {
     final salesState = ref.watch(farmSalesProvider);
     final paymentsState = ref.watch(farmPaymentsProvider);
     final expensesState = ref.watch(farmExpensesProvider);
+    final fieldsState = ref.watch(farmFieldsProvider);
     final workersState = ref.watch(farmWorkersProvider);
     final workerWorksState = ref.watch(farmWorkerWorksProvider);
     final workerPaymentsState = ref.watch(farmWorkerPaymentsProvider);
@@ -33,32 +36,61 @@ class FarmDashboardScreen extends ConsumerWidget {
     final sales = salesState.valueOrNull ?? const <FarmSaleModel>[];
     final payments = paymentsState.valueOrNull ?? const <FarmPaymentModel>[];
     final expenses = expensesState.valueOrNull ?? const <FarmExpenseModel>[];
+    final fields = fieldsState.valueOrNull ?? const <FarmFieldModel>[];
     final workers = workersState.valueOrNull ?? const <FarmWorkerModel>[];
     final workerWorks =
         workerWorksState.valueOrNull ?? const <FarmWorkerWorkModel>[];
     final workerPayments =
         workerPaymentsState.valueOrNull ?? const <FarmWorkerPaymentModel>[];
 
-    final totalSales = sales.fold<double>(
+    final selectedSeason = ref.watch(selectedFarmSeasonProvider);
+    final seasonSales = sales
+        .where((sale) => sale.resolvedSeasonYear == selectedSeason)
+        .toList();
+    final seasonPayments = payments
+        .where((payment) => payment.resolvedSeasonYear == selectedSeason)
+        .toList();
+    final seasonExpenses = expenses
+        .where((expense) => expense.resolvedSeasonYear == selectedSeason)
+        .toList();
+    final seasonWorkerWorks = workerWorks
+        .where((work) => work.resolvedSeasonYear == selectedSeason)
+        .toList();
+    final seasonWorkerPayments = workerPayments
+        .where((payment) => payment.resolvedSeasonYear == selectedSeason)
+        .toList();
+    final merchantBalances = _merchantBalances(
+      sales: seasonSales,
+      payments: seasonPayments,
+    );
+    final availableSeasons = _availableSeasons(
+      sales: sales,
+      payments: payments,
+      expenses: expenses,
+      works: workerWorks,
+      workerPayments: workerPayments,
+    );
+
+    final totalSales = seasonSales.fold<double>(
       0,
       (sum, item) => sum + item.totalAmount,
     );
-    final totalPayments = payments.fold<double>(
+    final totalPayments = seasonPayments.fold<double>(
       0,
       (sum, item) => sum + item.amount,
     );
-    final totalReceivable = merchants.fold<double>(
+    final totalReceivable = merchantBalances.values.fold<double>(
       0,
-      (sum, item) => sum + item.currentBalance,
+      (sum, item) => sum + item,
     );
-    final totalExpenses = expenses.fold<double>(
+    final totalExpenses = seasonExpenses.fold<double>(
       0,
       (sum, item) => sum + item.amount,
     );
     final workerSummaries = FarmWorkerUtils.summaries(
       workers: workers,
-      works: workerWorks,
-      payments: workerPayments,
+      works: seasonWorkerWorks,
+      payments: seasonWorkerPayments,
     );
     final totalWorkerEarned = workerSummaries.fold<double>(
       0,
@@ -80,6 +112,14 @@ class FarmDashboardScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const _HeaderCard(),
+                  const SizedBox(height: 16),
+                  FarmSeasonSelector(
+                    selectedSeason: selectedSeason,
+                    availableSeasons: availableSeasons,
+                    onChanged: (season) =>
+                        ref.read(selectedFarmSeasonProvider.notifier).state =
+                            season,
+                  ),
                   const SizedBox(height: 16),
                   GridView(
                     shrinkWrap: true,
@@ -135,13 +175,26 @@ class FarmDashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _ActionGrid(),
                   const SizedBox(height: 16),
-                  _MerchantBalanceCard(merchants: merchants),
+                  _MerchantBalanceCard(
+                    merchants: merchants,
+                    balances: merchantBalances,
+                  ),
                   const SizedBox(height: 16),
                   _WorkerBalanceCard(summaries: workerSummaries),
                   const SizedBox(height: 16),
-                  _RecentSalesCard(sales: sales, merchants: merchants),
+                  _FieldSeasonCard(
+                    fields: fields,
+                    sales: seasonSales,
+                    works: seasonWorkerWorks,
+                  ),
                   const SizedBox(height: 16),
-                  _RecentExpensesCard(expenses: expenses),
+                  _RecentSalesCard(
+                    sales: seasonSales,
+                    merchants: merchants,
+                    fields: fields,
+                  ),
+                  const SizedBox(height: 16),
+                  _RecentExpensesCard(expenses: seasonExpenses, fields: fields),
                 ],
               ),
             ),
@@ -255,6 +308,12 @@ class _ActionGrid extends StatelessWidget {
           onTap: () => context.push('/farm/expense'),
         ),
         ActionCard(
+          title: 'Tarlalarım',
+          icon: Icons.landscape_outlined,
+          color: AppColors.turquoise,
+          onTap: () => context.push('/farm/fields'),
+        ),
+        ActionCard(
           title: 'İşçiler',
           icon: Icons.engineering_outlined,
           color: AppColors.turquoise,
@@ -278,26 +337,30 @@ class _ActionGrid extends StatelessWidget {
 }
 
 class _MerchantBalanceCard extends StatelessWidget {
-  const _MerchantBalanceCard({required this.merchants});
+  const _MerchantBalanceCard({required this.merchants, required this.balances});
 
   final List<MerchantModel> merchants;
+  final Map<String, double> balances;
 
   @override
   Widget build(BuildContext context) {
+    final shown = merchants
+        .where((merchant) => (balances[merchant.id] ?? 0) != 0)
+        .toList();
     return _FarmCard(
       title: 'Tüccar Cari Hesap',
-      child: merchants.isEmpty
-          ? const _EmptyText('Henüz tüccar yok.')
+      child: shown.isEmpty
+          ? const _EmptyText('Bu sezonda tüccar hareketi yok.')
           : Column(
               children: [
-                for (final merchant in merchants)
+                for (final merchant in shown)
                   _InfoLine(
                     title: merchant.fullName,
                     subtitle: merchant.phone.isEmpty
                         ? 'Telefon yok'
                         : merchant.phone,
-                    amount: MoneyUtils.format(merchant.currentBalance),
-                    color: merchant.currentBalance >= 0
+                    amount: MoneyUtils.format(balances[merchant.id] ?? 0),
+                    color: (balances[merchant.id] ?? 0) >= 0
                         ? AppColors.debt
                         : AppColors.primary,
                   ),
@@ -339,17 +402,57 @@ class _WorkerBalanceCard extends StatelessWidget {
   }
 }
 
+class _FieldSeasonCard extends StatelessWidget {
+  const _FieldSeasonCard({
+    required this.fields,
+    required this.sales,
+    required this.works,
+  });
+
+  final List<FarmFieldModel> fields;
+  final List<FarmSaleModel> sales;
+  final List<FarmWorkerWorkModel> works;
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = _fieldLines(fields: fields, sales: sales, works: works);
+    return _FarmCard(
+      title: 'Tarla Özeti',
+      child: lines.isEmpty
+          ? const _EmptyText('Bu sezonda tarla bağlantılı kayıt yok.')
+          : Column(
+              children: [
+                for (final line in lines.take(5))
+                  _InfoLine(
+                    title: line.name,
+                    subtitle:
+                        '${_formatDays(line.workerDays)} işçi günü • ${line.soldKg.toStringAsFixed(0)} kg',
+                    amount: MoneyUtils.format(line.salesAmount),
+                    color: AppColors.income,
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
 class _RecentSalesCard extends StatelessWidget {
-  const _RecentSalesCard({required this.sales, required this.merchants});
+  const _RecentSalesCard({
+    required this.sales,
+    required this.merchants,
+    required this.fields,
+  });
 
   final List<FarmSaleModel> sales;
   final List<MerchantModel> merchants;
+  final List<FarmFieldModel> fields;
 
   @override
   Widget build(BuildContext context) {
     final merchantNames = {
       for (final merchant in merchants) merchant.id: merchant.fullName,
     };
+    final fieldNames = {for (final field in fields) field.id: field.name};
     final recent = sales.take(5).toList();
 
     return _FarmCard(
@@ -362,7 +465,7 @@ class _RecentSalesCard extends StatelessWidget {
                   _InfoLine(
                     title: sale.productLabel,
                     subtitle:
-                        '${sale.date} • ${merchantNames[sale.merchantId] ?? 'Tüccar'} • ${sale.amountKg.toStringAsFixed(0)} kg',
+                        '${sale.date} • ${merchantNames[sale.merchantId] ?? 'Tüccar'} • ${fieldNames[sale.fieldId] ?? 'Genel'} • ${sale.amountKg.toStringAsFixed(0)} kg',
                     amount: MoneyUtils.format(sale.totalAmount),
                     color: AppColors.income,
                   ),
@@ -373,13 +476,15 @@ class _RecentSalesCard extends StatelessWidget {
 }
 
 class _RecentExpensesCard extends StatelessWidget {
-  const _RecentExpensesCard({required this.expenses});
+  const _RecentExpensesCard({required this.expenses, required this.fields});
 
   final List<FarmExpenseModel> expenses;
+  final List<FarmFieldModel> fields;
 
   @override
   Widget build(BuildContext context) {
     final recent = expenses.take(5).toList();
+    final fieldNames = {for (final field in fields) field.id: field.name};
     return _FarmCard(
       title: 'Son Giderler',
       child: recent.isEmpty
@@ -390,8 +495,8 @@ class _RecentExpensesCard extends StatelessWidget {
                   _InfoLine(
                     title: expense.category,
                     subtitle: expense.description.trim().isEmpty
-                        ? expense.date
-                        : '${expense.date} • ${expense.description}',
+                        ? '${expense.date} • ${fieldNames[expense.fieldId] ?? 'Genel'}'
+                        : '${expense.date} • ${fieldNames[expense.fieldId] ?? 'Genel'} • ${expense.description}',
                     amount: MoneyUtils.format(expense.amount),
                     color: AppColors.expense,
                   ),
@@ -500,4 +605,98 @@ String _formatDays(double value) {
     return value.toStringAsFixed(0);
   }
   return value.toStringAsFixed(1);
+}
+
+Set<int> _availableSeasons({
+  required List<FarmSaleModel> sales,
+  required List<FarmPaymentModel> payments,
+  required List<FarmExpenseModel> expenses,
+  required List<FarmWorkerWorkModel> works,
+  required List<FarmWorkerPaymentModel> workerPayments,
+}) {
+  return {
+    DateTime.now().year,
+    for (final sale in sales) sale.resolvedSeasonYear,
+    for (final payment in payments) payment.resolvedSeasonYear,
+    for (final expense in expenses) expense.resolvedSeasonYear,
+    for (final work in works) work.resolvedSeasonYear,
+    for (final payment in workerPayments) payment.resolvedSeasonYear,
+  };
+}
+
+Map<String, double> _merchantBalances({
+  required List<FarmSaleModel> sales,
+  required List<FarmPaymentModel> payments,
+}) {
+  final balances = <String, double>{};
+  for (final sale in sales) {
+    balances[sale.merchantId] =
+        (balances[sale.merchantId] ?? 0) + sale.totalAmount;
+  }
+  for (final payment in payments) {
+    balances[payment.merchantId] =
+        (balances[payment.merchantId] ?? 0) - payment.amount;
+  }
+  return balances;
+}
+
+List<_FieldLine> _fieldLines({
+  required List<FarmFieldModel> fields,
+  required List<FarmSaleModel> sales,
+  required List<FarmWorkerWorkModel> works,
+}) {
+  final names = {for (final field in fields) field.id: field.name};
+  final salesByField = <String, double>{};
+  final kgByField = <String, double>{};
+  final daysByField = <String, double>{};
+
+  for (final sale in sales) {
+    if (sale.fieldId.isEmpty) {
+      continue;
+    }
+    salesByField[sale.fieldId] =
+        (salesByField[sale.fieldId] ?? 0) + sale.totalAmount;
+    kgByField[sale.fieldId] = (kgByField[sale.fieldId] ?? 0) + sale.amountKg;
+  }
+  for (final work in works) {
+    if (work.fieldId.isEmpty) {
+      continue;
+    }
+    daysByField[work.fieldId] =
+        (daysByField[work.fieldId] ?? 0) + work.dayCount;
+  }
+
+  final ids = <String>{
+    ...salesByField.keys,
+    ...kgByField.keys,
+    ...daysByField.keys,
+  };
+  final lines = [
+    for (final id in ids)
+      _FieldLine(
+        id: id,
+        name: names[id] ?? 'Eski tarla',
+        salesAmount: salesByField[id] ?? 0,
+        soldKg: kgByField[id] ?? 0,
+        workerDays: daysByField[id] ?? 0,
+      ),
+  ];
+  lines.sort((a, b) => b.salesAmount.compareTo(a.salesAmount));
+  return lines;
+}
+
+class _FieldLine {
+  const _FieldLine({
+    required this.id,
+    required this.name,
+    required this.salesAmount,
+    required this.soldKg,
+    required this.workerDays,
+  });
+
+  final String id;
+  final String name;
+  final double salesAmount;
+  final double soldKg;
+  final double workerDays;
 }

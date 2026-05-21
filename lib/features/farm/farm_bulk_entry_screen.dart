@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/money_utils.dart';
 import '../../data/models/farm_expense_model.dart';
+import '../../data/models/farm_field_model.dart';
 import '../../data/models/farm_payment_model.dart';
 import '../../data/models/farm_sale_model.dart';
 import '../../data/models/merchant_model.dart';
@@ -43,7 +44,9 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final merchantsState = ref.watch(merchantsProvider);
+    final fieldsState = ref.watch(activeFarmFieldsProvider);
     final varietiesState = ref.watch(farmApricotVarietiesProvider);
+    final fields = fieldsState.valueOrNull ?? const <FarmFieldModel>[];
     final varietyDocs = varietiesState.valueOrNull;
     final apricotOptions = varietyDocs == null || varietyDocs.isEmpty
         ? ApricotVarieties.all
@@ -95,6 +98,7 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
                               index: index,
                               draft: _drafts[index],
                               merchants: merchants,
+                              fields: fields,
                               apricotOptions: apricotOptions,
                               selectedMonth: _selectedMonth,
                               enabled: !_isSaving,
@@ -210,6 +214,8 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
               amountKg: kg,
               priceTl: price,
               totalAmount: kg * price,
+              seasonYear: _selectedMonth.year,
+              fieldId: draft.fieldId ?? '',
             ),
           );
         } else if (draft.type == _FarmBulkType.payment) {
@@ -219,6 +225,7 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
               merchantId: draft.merchantId!,
               date: dateKey,
               amount: MoneyUtils.parse(draft.amountController.text),
+              seasonYear: _selectedMonth.year,
             ),
           );
         } else {
@@ -229,6 +236,8 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
               category: draft.expenseCategory,
               amount: MoneyUtils.parse(draft.amountController.text),
               description: draft.descriptionController.text.trim(),
+              seasonYear: _selectedMonth.year,
+              fieldId: draft.fieldId ?? '',
             ),
           );
         }
@@ -284,6 +293,7 @@ class _BulkDraftCard extends StatelessWidget {
     required this.index,
     required this.draft,
     required this.merchants,
+    required this.fields,
     required this.apricotOptions,
     required this.selectedMonth,
     required this.enabled,
@@ -295,6 +305,7 @@ class _BulkDraftCard extends StatelessWidget {
   final int index;
   final _FarmBulkDraft draft;
   final List<MerchantModel> merchants;
+  final List<FarmFieldModel> fields;
   final List<String> apricotOptions;
   final DateTime selectedMonth;
   final bool enabled;
@@ -404,6 +415,16 @@ class _BulkDraftCard extends StatelessWidget {
               },
             ),
             const SizedBox(height: 10),
+            _FieldDropdown(
+              fields: fields,
+              value: draft.fieldId,
+              enabled: enabled,
+              onChanged: (value) {
+                draft.fieldId = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               value: draft.product,
               decoration: const InputDecoration(labelText: 'Ürün'),
@@ -497,6 +518,16 @@ class _BulkDraftCard extends StatelessWidget {
                   : null,
             ),
             const SizedBox(height: 10),
+            _FieldDropdown(
+              fields: fields,
+              value: draft.fieldId,
+              enabled: enabled,
+              onChanged: (value) {
+                draft.fieldId = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 10),
             _NumberField(
               controller: draft.amountController,
               label: 'Tutar',
@@ -548,6 +579,36 @@ class _MerchantDropdown extends StatelessWidget {
           DropdownMenuItem(value: merchant.id, child: Text(merchant.fullName)),
       ],
       onChanged: enabled ? onChanged : null,
+    );
+  }
+}
+
+class _FieldDropdown extends StatelessWidget {
+  const _FieldDropdown({
+    required this.fields,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final List<FarmFieldModel> fields;
+  final String? value;
+  final bool enabled;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      value: fields.any((field) => field.id == value) ? value : '',
+      decoration: const InputDecoration(labelText: 'Tarla'),
+      items: [
+        const DropdownMenuItem(value: '', child: Text('Genel / tarla yok')),
+        for (final field in fields)
+          DropdownMenuItem(value: field.id, child: Text(field.name)),
+      ],
+      onChanged: enabled
+          ? (value) => onChanged(value == null || value.isEmpty ? null : value)
+          : null,
     );
   }
 }
@@ -619,6 +680,7 @@ class _FarmBulkDraft {
   int day;
   String type = _FarmBulkType.sale;
   String? merchantId;
+  String? fieldId;
   String product = FarmProducts.kayisi;
   String? variety = ApricotVarieties.all.first;
   String expenseCategory = FarmExpenseCategories.all.first;
