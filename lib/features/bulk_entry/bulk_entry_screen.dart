@@ -31,10 +31,12 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
   final List<_EmployeePaymentDraft> _employeeDrafts = [];
   final List<TextEditingController> _creditCardControllers = [];
   final List<_MixedTransactionDraft> _mixedDrafts = [];
+  final List<_DesktopKiraathaneDraft> _desktopDrafts = [];
   bool _isSavingCiro = false;
   bool _isSavingEmployees = false;
   bool _isSavingCreditCard = false;
   bool _isSavingMixed = false;
+  bool _isSavingDesktop = false;
 
   @override
   void initState() {
@@ -44,6 +46,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     _addCreditCardControllers(20);
     _employeeDrafts.add(_EmployeePaymentDraft(day: _defaultDay()));
     _mixedDrafts.add(_MixedTransactionDraft(day: _defaultDay()));
+    _addDesktopRows(10);
   }
 
   @override
@@ -59,6 +62,9 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
       controller.dispose();
     }
     for (final draft in _mixedDrafts) {
+      draft.dispose();
+    }
+    for (final draft in _desktopDrafts) {
       draft.dispose();
     }
     super.dispose();
@@ -79,127 +85,168 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
         ),
       ),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  MonthSelector(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth >= 900) {
+              return activeEmployees.when(
+                loading: () => const Center(
+                    child: _StateCard(message: 'Personeller yükleniyor...')),
+                error: (_, __) => const Center(
+                  child: _StateCard(message: 'Personel listesi okunamadı.'),
+                ),
+                data: (employees) {
+                  return _KiraathaneDesktopBulkPanel(
                     selectedMonth: _selectedMonth,
-                    onPrevious: () => _changeMonth(
+                    rows: _desktopDrafts,
+                    employees: employees.map((item) => item.name).toList(),
+                    isSaving: _isSavingDesktop,
+                    appUser: appUser,
+                    onPreviousMonth: () => _changeMonth(
                       AppDateUtils.previousMonth(_selectedMonth),
                     ),
-                    onNext: () =>
-                        _changeMonth(AppDateUtils.nextMonth(_selectedMonth)),
-                  ),
-                  const SizedBox(height: 16),
-                  _InfoCard(
-                    title: 'Toplu kayıt',
-                    message:
-                        'Ciroda sadece tutar yazılan günler kaydedilir. İşçi, işletme ortağı ve kredi kartı harcamalarında satır ekleyebilirsin.',
-                  ),
-                  const SizedBox(height: 16),
-                  _CiroBulkCard(
-                    selectedMonth: _selectedMonth,
-                    controllers: _ciroControllers,
-                    descriptionController: _ciroDescriptionController,
-                    isSaving: _isSavingCiro,
-                    onSave: appUser == null ? null : () => _saveCiro(appUser),
-                  ),
-                  const SizedBox(height: 16),
-                  _CreditCardBulkCard(
-                    controllers: _creditCardControllers,
-                    isSaving: _isSavingCreditCard,
-                    onAddBoxes: () {
-                      setState(() {
-                        _addCreditCardControllers(5);
-                      });
-                    },
-                    onChanged: () => setState(() {}),
-                    onSave: appUser == null
-                        ? null
-                        : () => _saveCreditCardExpenses(appUser),
-                  ),
-                  const SizedBox(height: 16),
-                  activeEmployees.when(
-                    loading: () =>
-                        const _StateCard(message: 'Personeller yükleniyor...'),
-                    error: (_, __) => const _StateCard(
-                      message: 'Personel listesi okunamadı.',
+                    onNextMonth: () => _changeMonth(
+                      AppDateUtils.nextMonth(_selectedMonth),
                     ),
-                    data: (employees) {
-                      return _EmployeeBulkCard(
+                    onChanged: () => setState(() {}),
+                    onAddRows: () => setState(() => _addDesktopRows(5)),
+                    onCopyRow: _copyDesktopRow,
+                    onRemoveRow: _removeDesktopRow,
+                    onClearEmptyRows: _clearEmptyDesktopRows,
+                    onSave:
+                        appUser == null ? null : () => _saveDesktop(appUser),
+                  );
+                },
+              );
+            }
+
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      MonthSelector(
                         selectedMonth: _selectedMonth,
-                        employees: employees.map((item) => item.name).toList(),
-                        drafts: _employeeDrafts,
-                        isSaving: _isSavingEmployees,
-                        onAddRow: () {
+                        onPrevious: () => _changeMonth(
+                          AppDateUtils.previousMonth(_selectedMonth),
+                        ),
+                        onNext: () => _changeMonth(
+                          AppDateUtils.nextMonth(_selectedMonth),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _InfoCard(
+                        title: 'Toplu kayıt',
+                        message:
+                            'Ciroda sadece tutar yazılan günler kaydedilir. İşçi, işletme ortağı ve kredi kartı harcamalarında satır ekleyebilirsin.',
+                      ),
+                      const SizedBox(height: 16),
+                      _CiroBulkCard(
+                        selectedMonth: _selectedMonth,
+                        controllers: _ciroControllers,
+                        descriptionController: _ciroDescriptionController,
+                        isSaving: _isSavingCiro,
+                        onSave:
+                            appUser == null ? null : () => _saveCiro(appUser),
+                      ),
+                      const SizedBox(height: 16),
+                      _CreditCardBulkCard(
+                        controllers: _creditCardControllers,
+                        isSaving: _isSavingCreditCard,
+                        onAddBoxes: () {
                           setState(() {
-                            _employeeDrafts.add(
-                              _EmployeePaymentDraft(day: _defaultDay()),
-                            );
-                          });
-                        },
-                        onRemoveRow: (index) {
-                          setState(() {
-                            final removed = _employeeDrafts.removeAt(index);
-                            removed.dispose();
-                            if (_employeeDrafts.isEmpty) {
-                              _employeeDrafts.add(
-                                _EmployeePaymentDraft(day: _defaultDay()),
-                              );
-                            }
+                            _addCreditCardControllers(5);
                           });
                         },
                         onChanged: () => setState(() {}),
                         onSave: appUser == null
                             ? null
-                            : () => _saveEmployeePayments(appUser),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  activeEmployees.when(
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                    data: (employees) {
-                      return _MixedBulkCard(
-                        selectedMonth: _selectedMonth,
-                        employees: employees.map((item) => item.name).toList(),
-                        drafts: _mixedDrafts,
-                        isSaving: _isSavingMixed,
-                        onAddRow: () {
-                          setState(() {
-                            _mixedDrafts.add(
-                              _MixedTransactionDraft(day: _defaultDay()),
-                            );
-                          });
+                            : () => _saveCreditCardExpenses(appUser),
+                      ),
+                      const SizedBox(height: 16),
+                      activeEmployees.when(
+                        loading: () => const _StateCard(
+                          message: 'Personeller yükleniyor...',
+                        ),
+                        error: (_, __) => const _StateCard(
+                          message: 'Personel listesi okunamadı.',
+                        ),
+                        data: (employees) {
+                          return _EmployeeBulkCard(
+                            selectedMonth: _selectedMonth,
+                            employees:
+                                employees.map((item) => item.name).toList(),
+                            drafts: _employeeDrafts,
+                            isSaving: _isSavingEmployees,
+                            onAddRow: () {
+                              setState(() {
+                                _employeeDrafts.add(
+                                  _EmployeePaymentDraft(day: _defaultDay()),
+                                );
+                              });
+                            },
+                            onRemoveRow: (index) {
+                              setState(() {
+                                final removed = _employeeDrafts.removeAt(index);
+                                removed.dispose();
+                                if (_employeeDrafts.isEmpty) {
+                                  _employeeDrafts.add(
+                                    _EmployeePaymentDraft(day: _defaultDay()),
+                                  );
+                                }
+                              });
+                            },
+                            onChanged: () => setState(() {}),
+                            onSave: appUser == null
+                                ? null
+                                : () => _saveEmployeePayments(appUser),
+                          );
                         },
-                        onRemoveRow: (index) {
-                          setState(() {
-                            final removed = _mixedDrafts.removeAt(index);
-                            removed.dispose();
-                            if (_mixedDrafts.isEmpty) {
-                              _mixedDrafts.add(
-                                _MixedTransactionDraft(day: _defaultDay()),
-                              );
-                            }
-                          });
+                      ),
+                      const SizedBox(height: 16),
+                      activeEmployees.when(
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                        data: (employees) {
+                          return _MixedBulkCard(
+                            selectedMonth: _selectedMonth,
+                            employees:
+                                employees.map((item) => item.name).toList(),
+                            drafts: _mixedDrafts,
+                            isSaving: _isSavingMixed,
+                            onAddRow: () {
+                              setState(() {
+                                _mixedDrafts.add(
+                                  _MixedTransactionDraft(day: _defaultDay()),
+                                );
+                              });
+                            },
+                            onRemoveRow: (index) {
+                              setState(() {
+                                final removed = _mixedDrafts.removeAt(index);
+                                removed.dispose();
+                                if (_mixedDrafts.isEmpty) {
+                                  _mixedDrafts.add(
+                                    _MixedTransactionDraft(day: _defaultDay()),
+                                  );
+                                }
+                              });
+                            },
+                            onChanged: () => setState(() {}),
+                            onSave: appUser == null
+                                ? null
+                                : () => _saveMixed(appUser),
+                          );
                         },
-                        onChanged: () => setState(() {}),
-                        onSave: appUser == null
-                            ? null
-                            : () => _saveMixed(appUser),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -295,9 +342,8 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
           type: isPartnerPayment
               ? TransactionTypes.komisyon
               : TransactionTypes.isci,
-          category: isPartnerPayment
-              ? AppCategories.komisyon
-              : AppCategories.isci,
+          category:
+              isPartnerPayment ? AppCategories.komisyon : AppCategories.isci,
           person: isPartnerPayment ? '' : draft.employee!,
           amount: amount,
           paymentSource: draft.paymentSource,
@@ -460,6 +506,65 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     }
   }
 
+  Future<void> _saveDesktop(AppUser appUser) async {
+    final transactions = <TransactionModel>[];
+    final employeeNames = ref
+            .read(activeEmployeesProvider)
+            .valueOrNull
+            ?.map((e) => e.name)
+            .toList() ??
+        const <String>[];
+
+    for (var index = 0; index < _desktopDrafts.length; index++) {
+      final draft = _desktopDrafts[index];
+      if (!draft.hasAmount) {
+        continue;
+      }
+
+      final validationMessage = draft.validate(employeeNames);
+      if (validationMessage != null) {
+        _showSnack('${index + 1}. satır: $validationMessage');
+        return;
+      }
+
+      final date = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month,
+        draft.day,
+      );
+      transactions.add(draft.toTransaction(
+        date: date,
+        appUser: appUser,
+      ));
+    }
+
+    if (transactions.isEmpty) {
+      _showSnack('Kaydedilecek satır yok.');
+      return;
+    }
+
+    setState(() => _isSavingDesktop = true);
+    try {
+      await ref
+          .read(transactionRepositoryProvider)
+          .addTransactions(transactions);
+      setState(() {
+        for (final draft in _desktopDrafts) {
+          draft.dispose();
+        }
+        _desktopDrafts.clear();
+        _addDesktopRows(10);
+      });
+      _showSnack('${transactions.length} kayıt eklendi.');
+    } catch (_) {
+      _showSnack('Bilgisayar hızlı giriş kayıtları kaydedilemedi.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingDesktop = false);
+      }
+    }
+  }
+
   void _changeMonth(DateTime month) {
     setState(() {
       _selectedMonth = month;
@@ -473,6 +578,11 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
             .toInt();
       }
       for (final draft in _mixedDrafts) {
+        draft.day = draft.day
+            .clamp(1, AppDateUtils.daysInMonth(_selectedMonth))
+            .toInt();
+      }
+      for (final draft in _desktopDrafts) {
         draft.day = draft.day
             .clamp(1, AppDateUtils.daysInMonth(_selectedMonth))
             .toInt();
@@ -491,6 +601,47 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     _creditCardControllers.addAll(
       List.generate(count, (_) => TextEditingController()),
     );
+  }
+
+  void _addDesktopRows(int count) {
+    _desktopDrafts.addAll(
+      List.generate(count, (_) => _DesktopKiraathaneDraft(day: _defaultDay())),
+    );
+  }
+
+  void _copyDesktopRow(int index) {
+    setState(() {
+      _desktopDrafts.insert(index + 1, _desktopDrafts[index].copy());
+    });
+  }
+
+  void _removeDesktopRow(int index) {
+    setState(() {
+      final removed = _desktopDrafts.removeAt(index);
+      removed.dispose();
+      if (_desktopDrafts.isEmpty) {
+        _addDesktopRows(10);
+      }
+    });
+  }
+
+  void _clearEmptyDesktopRows() {
+    setState(() {
+      final kept = <_DesktopKiraathaneDraft>[];
+      for (final draft in _desktopDrafts) {
+        if (draft.isEmpty) {
+          draft.dispose();
+        } else {
+          kept.add(draft);
+        }
+      }
+      _desktopDrafts
+        ..clear()
+        ..addAll(kept);
+      if (_desktopDrafts.isEmpty) {
+        _addDesktopRows(10);
+      }
+    });
   }
 
   int _defaultDay() {
@@ -553,6 +704,610 @@ class _InfoCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _KiraathaneDesktopBulkPanel extends StatelessWidget {
+  const _KiraathaneDesktopBulkPanel({
+    required this.selectedMonth,
+    required this.rows,
+    required this.employees,
+    required this.isSaving,
+    required this.appUser,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
+    required this.onChanged,
+    required this.onAddRows,
+    required this.onCopyRow,
+    required this.onRemoveRow,
+    required this.onClearEmptyRows,
+    required this.onSave,
+  });
+
+  final DateTime selectedMonth;
+  final List<_DesktopKiraathaneDraft> rows;
+  final List<String> employees;
+  final bool isSaving;
+  final AppUser? appUser;
+  final VoidCallback onPreviousMonth;
+  final VoidCallback onNextMonth;
+  final VoidCallback onChanged;
+  final VoidCallback onAddRows;
+  final ValueChanged<int> onCopyRow;
+  final ValueChanged<int> onRemoveRow;
+  final VoidCallback onClearEmptyRows;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = rows.fold<double>(
+      0,
+      (sum, row) => sum + MoneyUtils.parse(row.amountController.text),
+    );
+    final days = List.generate(
+      AppDateUtils.daysInMonth(selectedMonth),
+      (index) => index + 1,
+    );
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1320),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 420,
+                    child: MonthSelector(
+                      selectedMonth: selectedMonth,
+                      onPrevious: onPreviousMonth,
+                      onNext: onNextMonth,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: _InfoCard(
+                      title: 'Bilgisayar hızlı giriş',
+                      message:
+                          'Tab ve Enter ile hücreler arasında ilerleyip satır satır kayıt girebilirsin. Boş satırlar kaydedilmez.',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _DesktopShortcutPanel(
+                monthKey: AppDateUtils.monthKey(selectedMonth),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Tek Tablo Giriş',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        ),
+                        _DesktopTotalBadge(total: total),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              _DesktopHeaderCell('Gün', width: 78),
+                              _DesktopHeaderCell('İşlem', width: 160),
+                              _DesktopHeaderCell(
+                                'Kategori / Personel',
+                                width: 280,
+                              ),
+                              _DesktopHeaderCell(
+                                'Ödeme kaynağı',
+                                width: 190,
+                              ),
+                              _DesktopHeaderCell('Açıklama', width: 280),
+                              _DesktopHeaderCell('Tutar', width: 140),
+                              _DesktopHeaderCell('İşlem', width: 100),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          for (var index = 0; index < rows.length; index++)
+                            _KiraathaneDesktopRow(
+                              index: index,
+                              draft: rows[index],
+                              days: days,
+                              employees: employees,
+                              enabled: !isSaving,
+                              onChanged: onChanged,
+                              onCopy: () => onCopyRow(index),
+                              onRemove: () => onRemoveRow(index),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: isSaving ? null : onAddRows,
+                          icon: const Icon(Icons.add),
+                          label: const Text('5 satır ekle'),
+                        ),
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          onPressed: isSaving ? null : onClearEmptyRows,
+                          icon: const Icon(Icons.cleaning_services_outlined),
+                          label: const Text('Boşları temizle'),
+                        ),
+                        const Spacer(),
+                        ElevatedButton.icon(
+                          onPressed:
+                              isSaving || appUser == null ? null : onSave,
+                          icon: const Icon(Icons.save_outlined),
+                          label: Text(
+                            isSaving ? 'Kaydediliyor...' : 'Satırları Kaydet',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DesktopShortcutPanel extends StatelessWidget {
+  const _DesktopShortcutPanel({required this.monthKey});
+
+  final String monthKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              'Düzeltme ve silme için kayıt yönetimi',
+              style: TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => context.push('/records?month=$monthKey'),
+            icon: const Icon(Icons.list_alt_outlined),
+            label: const Text('Kayıt Dökümü'),
+          ),
+          const SizedBox(width: 10),
+          OutlinedButton.icon(
+            onPressed: () => context.push('/report?month=$monthKey'),
+            icon: const Icon(Icons.bar_chart_outlined),
+            label: const Text('Aylık Rapor'),
+          ),
+          const SizedBox(width: 10),
+          OutlinedButton.icon(
+            onPressed: () => context.push('/employees'),
+            icon: const Icon(Icons.people_outline),
+            label: const Text('Personel Ayarları'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KiraathaneDesktopRow extends StatelessWidget {
+  const _KiraathaneDesktopRow({
+    required this.index,
+    required this.draft,
+    required this.days,
+    required this.employees,
+    required this.enabled,
+    required this.onChanged,
+    required this.onCopy,
+    required this.onRemove,
+  });
+
+  final int index;
+  final _DesktopKiraathaneDraft draft;
+  final List<int> days;
+  final List<String> employees;
+  final bool enabled;
+  final VoidCallback onChanged;
+  final VoidCallback onCopy;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1228,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: index.isEven ? AppColors.surfaceAlt : AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          _DesktopDropdownCell<int>(
+            width: 78,
+            value: draft.day,
+            enabled: enabled,
+            items: [
+              for (final day in days)
+                DropdownMenuItem(value: day, child: Text('$day')),
+            ],
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              draft.day = value;
+              onChanged();
+            },
+          ),
+          _DesktopDropdownCell<String>(
+            width: 160,
+            value: draft.type,
+            enabled: enabled,
+            items: [
+              for (final type in _DesktopKiraathaneType.all)
+                DropdownMenuItem(
+                  value: type,
+                  child: Text(_DesktopKiraathaneType.label(type)),
+                ),
+            ],
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              draft.setType(value);
+              onChanged();
+            },
+          ),
+          SizedBox(width: 280, child: _subjectCell()),
+          SizedBox(width: 190, child: _paymentSourceCell()),
+          _DesktopTextCell(
+            width: 280,
+            controller: draft.descriptionController,
+            enabled: enabled,
+            hint: 'Açıklama',
+            onChanged: onChanged,
+          ),
+          _DesktopTextCell(
+            width: 140,
+            controller: draft.amountController,
+            enabled: enabled,
+            hint: 'Tutar',
+            prefix: '₺ ',
+            isNumber: true,
+            onChanged: onChanged,
+          ),
+          SizedBox(
+            width: 100,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  tooltip: 'Satırı kopyala',
+                  onPressed: enabled ? onCopy : null,
+                  icon: const Icon(Icons.copy_all_outlined, size: 20),
+                ),
+                IconButton(
+                  tooltip: 'Satırı sil',
+                  onPressed: enabled ? onRemove : null,
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.expense,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _subjectCell() {
+    switch (draft.type) {
+      case TransactionTypes.masraf:
+        return _DesktopDropdownCell<String>(
+          width: 280,
+          value: draft.category,
+          enabled: enabled,
+          items: [
+            for (final category in AppCategories.expenseCategories)
+              DropdownMenuItem(value: category, child: Text(category)),
+          ],
+          onChanged: (value) {
+            draft.category = value;
+            onChanged();
+          },
+        );
+      case TransactionTypes.isci:
+        return _DesktopDropdownCell<String>(
+          width: 280,
+          value: employees.contains(draft.employee) ? draft.employee : null,
+          enabled: enabled && employees.isNotEmpty,
+          items: [
+            for (final employee in employees)
+              DropdownMenuItem(value: employee, child: Text(employee)),
+          ],
+          hint: employees.isEmpty ? 'Personel yok' : 'Personel',
+          onChanged: (value) {
+            draft.employee = value;
+            onChanged();
+          },
+        );
+      case TransactionTypes.borc:
+        return Row(
+          children: [
+            _DesktopDropdownCell<String>(
+              width: 132,
+              value: draft.category,
+              enabled: enabled,
+              items: [
+                for (final category in AppCategories.debtCategories)
+                  DropdownMenuItem(value: category, child: Text(category)),
+              ],
+              onChanged: (value) {
+                draft.category = value;
+                onChanged();
+              },
+            ),
+            _DesktopTextCell(
+              width: 148,
+              controller: draft.personController,
+              enabled: enabled,
+              hint: 'Kişi',
+              onChanged: onChanged,
+            ),
+          ],
+        );
+      case _DesktopKiraathaneType.creditCard:
+        return const _DesktopStaticCell(width: 280, text: 'Kredi Kartı');
+      default:
+        return _DesktopStaticCell(
+          width: 280,
+          text: _DesktopKiraathaneType.label(draft.type),
+        );
+    }
+  }
+
+  Widget _paymentSourceCell() {
+    if (draft.type == _DesktopKiraathaneType.creditCard) {
+      return const _DesktopStaticCell(width: 190, text: 'Kredi Kartı');
+    }
+    if (draft.type == TransactionTypes.masraf ||
+        draft.type == TransactionTypes.isci ||
+        draft.type == TransactionTypes.komisyon) {
+      return _DesktopDropdownCell<String>(
+        width: 190,
+        value: draft.paymentSource,
+        enabled: enabled,
+        items: [
+          for (final source in PaymentSources.all)
+            DropdownMenuItem(
+              value: source,
+              child: Text(PaymentSources.label(source)),
+            ),
+        ],
+        onChanged: (value) {
+          if (value == null) {
+            return;
+          }
+          draft.paymentSource = value;
+          onChanged();
+        },
+      );
+    }
+    return const _DesktopStaticCell(width: 190, text: '-');
+  }
+}
+
+class _DesktopHeaderCell extends StatelessWidget {
+  const _DesktopHeaderCell(this.label, {required this.width});
+
+  final String label;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.mutedText,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DesktopDropdownCell<T> extends StatelessWidget {
+  const _DesktopDropdownCell({
+    required this.width,
+    required this.value,
+    required this.enabled,
+    required this.items,
+    required this.onChanged,
+    this.hint,
+  });
+
+  final double width;
+  final T? value;
+  final bool enabled;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+  final String? hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: DropdownButtonFormField<T>(
+          value: value,
+          isExpanded: true,
+          decoration: InputDecoration(
+            hintText: hint,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 12,
+            ),
+          ),
+          items: items,
+          onChanged: enabled ? onChanged : null,
+        ),
+      ),
+    );
+  }
+}
+
+class _DesktopTextCell extends StatelessWidget {
+  const _DesktopTextCell({
+    required this.width,
+    required this.controller,
+    required this.enabled,
+    required this.hint,
+    required this.onChanged,
+    this.prefix,
+    this.isNumber = false,
+  });
+
+  final double width;
+  final TextEditingController controller;
+  final bool enabled;
+  final String hint;
+  final VoidCallback onChanged;
+  final String? prefix;
+  final bool isNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: TextField(
+          controller: controller,
+          enabled: enabled,
+          keyboardType: isNumber
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.text,
+          textInputAction: TextInputAction.next,
+          onChanged: (_) => onChanged(),
+          onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+          decoration: InputDecoration(
+            hintText: hint,
+            prefixText: prefix,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 13,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DesktopStaticCell extends StatelessWidget {
+  const _DesktopStaticCell({required this.width, required this.text});
+
+  final double width;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Container(
+          height: 48,
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceAlt,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppColors.mutedText),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DesktopTotalBadge extends StatelessWidget {
+  const _DesktopTotalBadge({required this.total});
+
+  final double total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.primary.withOpacity(0.35)),
+      ),
+      child: Text(
+        'Toplam ${MoneyUtils.format(total)}',
+        style: const TextStyle(
+          color: AppColors.text,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }
@@ -1321,6 +2076,227 @@ class _EmployeePaymentDraft {
   void dispose() {
     amountController.dispose();
     descriptionController.dispose();
+  }
+}
+
+class _DesktopKiraathaneDraft {
+  _DesktopKiraathaneDraft({required this.day});
+
+  int day;
+  String type = TransactionTypes.ciro;
+  String? category = AppCategories.ciro;
+  String? employee;
+  String paymentSource = PaymentSources.cash;
+  final personController = TextEditingController();
+  final amountController = TextEditingController();
+  final descriptionController = TextEditingController(text: 'Hızlı ciro');
+
+  bool get hasAmount => MoneyUtils.parse(amountController.text) > 0;
+
+  bool get isEmpty =>
+      MoneyUtils.parse(amountController.text) <= 0 &&
+      personController.text.trim().isEmpty &&
+      descriptionController.text.trim().isEmpty;
+
+  void setType(String value) {
+    type = value;
+    category = null;
+    employee = null;
+    personController.clear();
+
+    switch (value) {
+      case TransactionTypes.ciro:
+        category = AppCategories.ciro;
+        paymentSource = PaymentSources.cash;
+        descriptionController.text = 'Hızlı ciro';
+        break;
+      case TransactionTypes.masraf:
+        category = AppCategories.expenseCategories.first;
+        paymentSource = PaymentSources.cash;
+        descriptionController.text = 'Hızlı masraf';
+        break;
+      case TransactionTypes.isci:
+        category = AppCategories.isci;
+        paymentSource = PaymentSources.cash;
+        descriptionController.text = 'Hızlı işçi ödemesi';
+        break;
+      case TransactionTypes.komisyon:
+        category = AppCategories.komisyon;
+        paymentSource = PaymentSources.cash;
+        descriptionController.text = 'Hızlı işletme ortağı ödemesi';
+        break;
+      case _DesktopKiraathaneType.creditCard:
+        category = AppCategories.creditCard;
+        paymentSource = PaymentSources.bank;
+        descriptionController.text = 'Kredi kartı harcaması';
+        break;
+      case TransactionTypes.banka:
+        category = AppCategories.banka;
+        paymentSource = PaymentSources.cash;
+        descriptionController.text = 'Hızlı bankaya yatan';
+        break;
+      case TransactionTypes.borc:
+        category = AppCategories.debtGiven;
+        paymentSource = PaymentSources.cash;
+        descriptionController.text = 'Hızlı borç / alacak';
+        break;
+    }
+  }
+
+  String? validate(List<String> employees) {
+    if (MoneyUtils.parse(amountController.text) <= 0) {
+      return 'Tutar 0’dan büyük olmalı.';
+    }
+    if (type == TransactionTypes.masraf &&
+        (category == null || category!.trim().isEmpty)) {
+      return 'Masraf kategorisi seçilmeli.';
+    }
+    if (type == TransactionTypes.isci) {
+      if (employee == null || employee!.trim().isEmpty) {
+        return 'İşçi seçilmeli.';
+      }
+      if (!employees.contains(employee)) {
+        return 'Seçilen işçi aktif listede yok.';
+      }
+    }
+    if (type == TransactionTypes.borc) {
+      if (category == null || category!.trim().isEmpty) {
+        return 'Borç / alacak tipi seçilmeli.';
+      }
+      if (personController.text.trim().isEmpty) {
+        return 'Borç / alacak için kişi adı girilmeli.';
+      }
+    }
+    return null;
+  }
+
+  TransactionModel toTransaction({
+    required DateTime date,
+    required AppUser appUser,
+  }) {
+    final saveType = type == _DesktopKiraathaneType.creditCard
+        ? TransactionTypes.masraf
+        : type;
+    final description = descriptionController.text.trim();
+
+    return TransactionModel(
+      id: '',
+      date: AppDateUtils.dateKey(date),
+      monthKey: AppDateUtils.monthKey(date),
+      type: saveType,
+      category: _categoryForSave,
+      person: _personForSave,
+      amount: MoneyUtils.parse(amountController.text),
+      paymentSource: _paymentSourceForSave,
+      description: description.isEmpty ? _defaultDescription : description,
+      createdByUid: appUser.uid,
+      createdByName: appUser.displayName,
+    );
+  }
+
+  String get _categoryForSave {
+    switch (type) {
+      case TransactionTypes.ciro:
+        return AppCategories.ciro;
+      case TransactionTypes.masraf:
+        return category ?? AppCategories.expenseCategories.first;
+      case TransactionTypes.isci:
+        return AppCategories.isci;
+      case TransactionTypes.komisyon:
+        return AppCategories.komisyon;
+      case _DesktopKiraathaneType.creditCard:
+        return AppCategories.creditCard;
+      case TransactionTypes.banka:
+        return AppCategories.banka;
+      case TransactionTypes.borc:
+        return category ?? AppCategories.debtGiven;
+      default:
+        return category ?? type;
+    }
+  }
+
+  String get _personForSave {
+    if (type == TransactionTypes.isci) {
+      return employee ?? '';
+    }
+    if (type == TransactionTypes.borc) {
+      return personController.text.trim();
+    }
+    return '';
+  }
+
+  String get _paymentSourceForSave {
+    if (type == _DesktopKiraathaneType.creditCard) {
+      return PaymentSources.bank;
+    }
+    if (type == TransactionTypes.masraf ||
+        type == TransactionTypes.isci ||
+        type == TransactionTypes.komisyon) {
+      return paymentSource;
+    }
+    return PaymentSources.cash;
+  }
+
+  String get _defaultDescription {
+    switch (type) {
+      case TransactionTypes.ciro:
+        return 'Hızlı ciro';
+      case TransactionTypes.masraf:
+        return 'Hızlı masraf';
+      case TransactionTypes.isci:
+        return 'Hızlı işçi ödemesi';
+      case TransactionTypes.komisyon:
+        return 'Hızlı işletme ortağı ödemesi';
+      case _DesktopKiraathaneType.creditCard:
+        return 'Kredi kartı harcaması';
+      case TransactionTypes.banka:
+        return 'Hızlı bankaya yatan';
+      case TransactionTypes.borc:
+        return 'Hızlı borç / alacak';
+      default:
+        return 'Hızlı kayıt';
+    }
+  }
+
+  _DesktopKiraathaneDraft copy() {
+    final copied = _DesktopKiraathaneDraft(day: day)
+      ..type = type
+      ..category = category
+      ..employee = employee
+      ..paymentSource = paymentSource;
+    copied.personController.text = personController.text;
+    copied.amountController.text = amountController.text;
+    copied.descriptionController.text = descriptionController.text;
+    return copied;
+  }
+
+  void dispose() {
+    personController.dispose();
+    amountController.dispose();
+    descriptionController.dispose();
+  }
+}
+
+class _DesktopKiraathaneType {
+  const _DesktopKiraathaneType._();
+
+  static const creditCard = 'credit_card';
+
+  static const all = [
+    TransactionTypes.ciro,
+    TransactionTypes.masraf,
+    TransactionTypes.isci,
+    TransactionTypes.komisyon,
+    creditCard,
+    TransactionTypes.banka,
+    TransactionTypes.borc,
+  ];
+
+  static String label(String type) {
+    if (type == creditCard) {
+      return 'Kredi Kartı';
+    }
+    return TransactionTypes.label(type);
   }
 }
 
