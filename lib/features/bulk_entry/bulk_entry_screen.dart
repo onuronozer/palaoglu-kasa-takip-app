@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/categories.dart';
+import '../../core/ocr/ocr_image_reader.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/money_utils.dart';
@@ -37,6 +38,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
   bool _isSavingCreditCard = false;
   bool _isSavingMixed = false;
   bool _isSavingDesktop = false;
+  bool _isReadingCreditCardOcr = false;
 
   @override
   void initState() {
@@ -100,6 +102,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
                     rows: _desktopDrafts,
                     employees: employees.map((item) => item.name).toList(),
                     isSaving: _isSavingDesktop,
+                    isReadingOcr: _isReadingCreditCardOcr,
                     appUser: appUser,
                     onPreviousMonth: () => _changeMonth(
                       AppDateUtils.previousMonth(_selectedMonth),
@@ -112,6 +115,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
                     onCopyRow: _copyDesktopRow,
                     onRemoveRow: _removeDesktopRow,
                     onClearEmptyRows: _clearEmptyDesktopRows,
+                    onReadCreditCardOcr: _readCreditCardOcrToDesktopRows,
                     onSave:
                         appUser == null ? null : () => _saveDesktop(appUser),
                   );
@@ -155,6 +159,8 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
                       _CreditCardBulkCard(
                         controllers: _creditCardControllers,
                         isSaving: _isSavingCreditCard,
+                        isReadingOcr: _isReadingCreditCardOcr,
+                        onReadOcr: _readCreditCardOcrToBoxes,
                         onAddBoxes: () {
                           setState(() {
                             _addCreditCardControllers(5);
@@ -565,6 +571,79 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     }
   }
 
+  Future<void> _readCreditCardOcrToBoxes() async {
+    final amounts = await _pickCreditCardOcrAmounts();
+    if (amounts == null || amounts.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      for (final amount in amounts) {
+        var targetIndex = _creditCardControllers.indexWhere(
+          (controller) => controller.text.trim().isEmpty,
+        );
+        if (targetIndex == -1) {
+          _addCreditCardControllers(5);
+          targetIndex = _creditCardControllers.indexWhere(
+            (controller) => controller.text.trim().isEmpty,
+          );
+        }
+        _creditCardControllers[targetIndex].text =
+            _formatCreditCardOcrAmountInput(amount);
+      }
+    });
+  }
+
+  Future<void> _readCreditCardOcrToDesktopRows() async {
+    final amounts = await _pickCreditCardOcrAmounts();
+    if (amounts == null || amounts.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      for (final amount in amounts) {
+        final row = _findEmptyDesktopRowForOcr();
+        row.day = _defaultDay();
+        row.setType(_DesktopKiraathaneType.creditCard);
+        row.amountController.text = _formatCreditCardOcrAmountInput(amount);
+      }
+    });
+  }
+
+  Future<List<double>?> _pickCreditCardOcrAmounts() async {
+    if (_isReadingCreditCardOcr) {
+      return null;
+    }
+
+    setState(() => _isReadingCreditCardOcr = true);
+    try {
+      final result = await pickImageAndReadOcrText();
+      if (result == null) {
+        _showSnack('Görsel seçilmedi.');
+        return null;
+      }
+
+      final amounts = _extractCreditCardOcrAmounts(result.text);
+      if (amounts.isEmpty) {
+        _showSnack('OCR yazıyı okudu ama tutar bulamadı.');
+        return const <double>[];
+      }
+
+      final total = amounts.fold<double>(0, (sum, amount) => sum + amount);
+      _showSnack(
+        '${amounts.length} tutar okundu. Toplam ${_formatCreditCardOcrTotal(total)}.',
+      );
+      return amounts;
+    } catch (error) {
+      _showSnack(_friendlyOcrError(error));
+      return null;
+    } finally {
+      if (mounted) {
+        setState(() => _isReadingCreditCardOcr = false);
+      }
+    }
+  }
+
   void _changeMonth(DateTime month) {
     setState(() {
       _selectedMonth = month;
@@ -644,6 +723,15 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     });
   }
 
+  _DesktopKiraathaneDraft _findEmptyDesktopRowForOcr() {
+    final existingIndex = _desktopDrafts.indexWhere((draft) => draft.isEmpty);
+    if (existingIndex != -1) {
+      return _desktopDrafts[existingIndex];
+    }
+    _addDesktopRows(5);
+    return _desktopDrafts.firstWhere((draft) => draft.isEmpty);
+  }
+
   int _defaultDay() {
     final now = DateTime.now();
     if (now.year == _selectedMonth.year && now.month == _selectedMonth.month) {
@@ -660,6 +748,74 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+final _creditCardOcrAmountPattern = RegExp(
+  r'[-−]?\s*(?:\d{1,3}(?:[.\s]\d{3})+|\d+),\d{2}\s*(?:TL|tl|₺)?',
+);
+final _creditCardOcrTlPattern = RegExp('tl', caseSensitive: false);
+
+List<double> _extractCreditCardOcrAmounts(String rawText) {
+  final amounts = <double>[];
+  final lines = rawText.split(RegExp(r'[\r\n]+'));
+
+  for (final line in lines) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty || !_hasCreditCardOcrMoneySignal(trimmed)) {
+      continue;
+    }
+
+    for (final match in _creditCardOcrAmountPattern.allMatches(trimmed)) {
+      final amount = _parseCreditCardOcrAmount(match.group(0) ?? '');
+      if (amount != null) {
+        amounts.add(amount);
+      }
+    }
+  }
+
+  return amounts;
+}
+
+bool _hasCreditCardOcrMoneySignal(String line) {
+  final lower = line.toLowerCase();
+  return lower.contains('tl') ||
+      line.contains('₺') ||
+      _creditCardOcrAmountPattern.hasMatch(line);
+}
+
+double? _parseCreditCardOcrAmount(String rawAmount) {
+  final cleaned = rawAmount
+      .replaceAll('−', '-')
+      .replaceAll(_creditCardOcrTlPattern, '')
+      .replaceAll('₺', '')
+      .replaceAll(' ', '')
+      .trim();
+  if (cleaned.isEmpty) {
+    return null;
+  }
+
+  final normalized = cleaned.replaceAll('.', '').replaceAll(',', '.');
+  final parsed = double.tryParse(normalized);
+  if (parsed == null || parsed == 0) {
+    return null;
+  }
+
+  return parsed.abs();
+}
+
+String _formatCreditCardOcrAmountInput(double amount) {
+  return amount.toStringAsFixed(2).replaceAll('.', ',');
+}
+
+String _formatCreditCardOcrTotal(double amount) {
+  return '${_formatCreditCardOcrAmountInput(amount)} TL';
+}
+
+String _friendlyOcrError(Object error) {
+  return error
+      .toString()
+      .replaceFirst('Unsupported operation: ', '')
+      .replaceFirst('Bad state: ', '');
 }
 
 class _InfoCard extends StatelessWidget {
@@ -715,6 +871,7 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
     required this.rows,
     required this.employees,
     required this.isSaving,
+    required this.isReadingOcr,
     required this.appUser,
     required this.onPreviousMonth,
     required this.onNextMonth,
@@ -723,6 +880,7 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
     required this.onCopyRow,
     required this.onRemoveRow,
     required this.onClearEmptyRows,
+    required this.onReadCreditCardOcr,
     required this.onSave,
   });
 
@@ -730,6 +888,7 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
   final List<_DesktopKiraathaneDraft> rows;
   final List<String> employees;
   final bool isSaving;
+  final bool isReadingOcr;
   final AppUser? appUser;
   final VoidCallback onPreviousMonth;
   final VoidCallback onNextMonth;
@@ -738,6 +897,7 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
   final ValueChanged<int> onCopyRow;
   final ValueChanged<int> onRemoveRow;
   final VoidCallback onClearEmptyRows;
+  final VoidCallback onReadCreditCardOcr;
   final VoidCallback? onSave;
 
   @override
@@ -848,20 +1008,36 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
                     Row(
                       children: [
                         OutlinedButton.icon(
-                          onPressed: isSaving ? null : onAddRows,
+                          onPressed:
+                              isSaving || isReadingOcr ? null : onAddRows,
                           icon: const Icon(Icons.add),
                           label: const Text('5 satır ekle'),
                         ),
                         const SizedBox(width: 10),
                         OutlinedButton.icon(
-                          onPressed: isSaving ? null : onClearEmptyRows,
+                          onPressed: isSaving || isReadingOcr
+                              ? null
+                              : onClearEmptyRows,
                           icon: const Icon(Icons.cleaning_services_outlined),
                           label: const Text('Boşları temizle'),
                         ),
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          onPressed: isSaving || isReadingOcr
+                              ? null
+                              : onReadCreditCardOcr,
+                          icon: const Icon(Icons.document_scanner_outlined),
+                          label: Text(
+                            isReadingOcr
+                                ? 'OCR okunuyor...'
+                                : 'Kredi Kartı OCR',
+                          ),
+                        ),
                         const Spacer(),
                         ElevatedButton.icon(
-                          onPressed:
-                              isSaving || appUser == null ? null : onSave,
+                          onPressed: isSaving || isReadingOcr || appUser == null
+                              ? null
+                              : onSave,
                           icon: const Icon(Icons.save_outlined),
                           label: Text(
                             isSaving ? 'Kaydediliyor...' : 'Satırları Kaydet',
@@ -1608,6 +1784,8 @@ class _CreditCardBulkCard extends StatelessWidget {
   const _CreditCardBulkCard({
     required this.controllers,
     required this.isSaving,
+    required this.isReadingOcr,
+    required this.onReadOcr,
     required this.onAddBoxes,
     required this.onChanged,
     required this.onSave,
@@ -1615,6 +1793,8 @@ class _CreditCardBulkCard extends StatelessWidget {
 
   final List<TextEditingController> controllers;
   final bool isSaving;
+  final bool isReadingOcr;
+  final VoidCallback onReadOcr;
   final VoidCallback onAddBoxes;
   final VoidCallback onChanged;
   final VoidCallback? onSave;
@@ -1646,14 +1826,14 @@ class _CreditCardBulkCard extends StatelessWidget {
               ),
               IconButton(
                 tooltip: '5 kutucuk ekle',
-                onPressed: isSaving ? null : onAddBoxes,
+                onPressed: isSaving || isReadingOcr ? null : onAddBoxes,
                 icon: const Icon(Icons.add_circle_outline),
               ),
             ],
           ),
           const SizedBox(height: 6),
           const Text(
-            'Mobil bankacılıktaki tutarları kutucuklara yaz; toplamı uygulama hesaplar.',
+            'Mobil bankacılıktaki tutarları yazabilir veya ekran görüntüsünden okutabilirsin.',
             style: TextStyle(color: AppColors.mutedText, fontSize: 12),
           ),
           const SizedBox(height: 12),
@@ -1713,13 +1893,19 @@ class _CreditCardBulkCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           OutlinedButton.icon(
-            onPressed: isSaving ? null : onAddBoxes,
+            onPressed: isSaving || isReadingOcr ? null : onAddBoxes,
             icon: const Icon(Icons.add),
             label: const Text('5 Kutucuk Ekle'),
           ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: isSaving || isReadingOcr ? null : onReadOcr,
+            icon: const Icon(Icons.document_scanner_outlined),
+            label: Text(isReadingOcr ? 'OCR okunuyor...' : 'OCR ile Oku'),
+          ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
-            onPressed: isSaving ? null : onSave,
+            onPressed: isSaving || isReadingOcr ? null : onSave,
             icon: const Icon(Icons.save_outlined),
             label: Text(
               isSaving ? 'Kaydediliyor...' : 'Kredi Kartını Kaydet',
@@ -2096,7 +2282,7 @@ class _DesktopKiraathaneDraft {
   bool get isEmpty =>
       MoneyUtils.parse(amountController.text) <= 0 &&
       personController.text.trim().isEmpty &&
-      descriptionController.text.trim().isEmpty;
+      (employee == null || employee!.trim().isEmpty);
 
   void setType(String value) {
     type = value;
