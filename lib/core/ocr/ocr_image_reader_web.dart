@@ -9,6 +9,8 @@ const _tesseractCdn =
 const _tesseractWorkerCdn =
     'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js';
 const _tesseractLangCdn = 'https://tessdata.projectnaptha.com/4.0.0';
+const _ocrLanguage = 'eng';
+const _maxOcrImageSide = 1600;
 
 Future<OcrImageResult?> pickImageAndReadOcrText() async {
   final input = html.FileUploadInputElement()
@@ -25,7 +27,7 @@ Future<OcrImageResult?> pickImageAndReadOcrText() async {
 
   final file = files.first;
   final tesseract = await _loadTesseract();
-  final imageDataUrl = await _readFileAsDataUrl(file);
+  final imageDataUrl = await _prepareImageForOcr(file);
   final result = await _recognizeImage(tesseract, imageDataUrl).timeout(
     const Duration(seconds: 90),
     onTimeout: () {
@@ -38,6 +40,40 @@ Future<OcrImageResult?> pickImageAndReadOcrText() async {
   final text = data is js.JsObject ? data['text']?.toString() ?? '' : '';
 
   return OcrImageResult(fileName: file.name, text: text);
+}
+
+Future<String> _prepareImageForOcr(html.File file) async {
+  final originalDataUrl = await _readFileAsDataUrl(file);
+  try {
+    final image = html.ImageElement(src: originalDataUrl);
+    await image.onLoad.first.timeout(const Duration(seconds: 12));
+
+    final width = image.naturalWidth;
+    final height = image.naturalHeight;
+    if (width <= 0 || height <= 0) {
+      return originalDataUrl;
+    }
+
+    final longestSide = width > height ? width : height;
+    final scale =
+        longestSide > _maxOcrImageSide ? _maxOcrImageSide / longestSide : 1.0;
+    final targetWidth = (width * scale).round();
+    final targetHeight = (height * scale).round();
+
+    final canvas = html.CanvasElement(
+      width: targetWidth,
+      height: targetHeight,
+    );
+    final context = canvas.context2D;
+    context
+      ..fillStyle = 'white'
+      ..fillRect(0, 0, targetWidth, targetHeight)
+      ..drawImageScaled(image, 0, 0, targetWidth, targetHeight);
+
+    return canvas.toDataUrl('image/jpeg', 0.88);
+  } catch (_) {
+    return originalDataUrl;
+  }
 }
 
 Future<String> _readFileAsDataUrl(html.File file) async {
@@ -60,7 +96,7 @@ Future<js.JsObject> _recognizeImage(
     js.JsObject? worker;
     try {
       final workerPromise = tesseract.callMethod('createWorker', [
-        'tur+eng',
+        _ocrLanguage,
         1,
         js.JsObject.jsify({
           'workerPath': _tesseractWorkerCdn,
@@ -77,7 +113,10 @@ Future<js.JsObject> _recognizeImage(
     }
   }
 
-  final promise = tesseract.callMethod('recognize', [imageDataUrl, 'tur+eng']);
+  final promise = tesseract.callMethod('recognize', [
+    imageDataUrl,
+    _ocrLanguage,
+  ]);
   return _promiseToJsObject(promise);
 }
 
