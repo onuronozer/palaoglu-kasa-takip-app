@@ -8,9 +8,11 @@ const _tesseractCdn =
     'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
 const _tesseractWorkerCdn =
     'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js';
+const _tesseractCoreCdn =
+    'https://cdn.jsdelivr.net/npm/tesseract.js-core@v5.0.0';
 const _tesseractLangCdn = 'https://tessdata.projectnaptha.com/4.0.0';
 const _ocrLanguage = 'eng';
-const _maxOcrImageSide = 1600;
+const _maxOcrImageSide = 1200;
 
 Future<OcrImageResult?> pickImageAndReadOcrText() async {
   final input = html.FileUploadInputElement()
@@ -91,6 +93,17 @@ Future<js.JsObject> _recognizeImage(
   js.JsObject tesseract,
   String imageDataUrl,
 ) async {
+  if (_isLikelyMobileBrowser()) {
+    try {
+      return await _recognizeDirect(tesseract, imageDataUrl).timeout(
+        const Duration(seconds: 35),
+      );
+    } catch (_) {
+      // Mobile browsers sometimes fail the default worker path; try the
+      // explicit worker configuration below before giving up.
+    }
+  }
+
   final createWorker = tesseract['createWorker'];
   if (createWorker != null) {
     js.JsObject? worker;
@@ -100,12 +113,19 @@ Future<js.JsObject> _recognizeImage(
         1,
         js.JsObject.jsify({
           'workerPath': _tesseractWorkerCdn,
+          'corePath': _tesseractCoreCdn,
           'langPath': _tesseractLangCdn,
+          'cacheMethod': 'none',
+          'workerBlobURL': false,
         }),
       ]);
-      worker = await _promiseToJsObject(workerPromise);
+      worker = await _promiseToJsObject(workerPromise).timeout(
+        const Duration(seconds: 45),
+      );
       final resultPromise = worker.callMethod('recognize', [imageDataUrl]);
       return await _promiseToJsObject(resultPromise);
+    } catch (_) {
+      return _recognizeDirect(tesseract, imageDataUrl);
     } finally {
       if (worker != null) {
         await _promiseToAny(worker.callMethod('terminate', []));
@@ -113,11 +133,26 @@ Future<js.JsObject> _recognizeImage(
     }
   }
 
+  return _recognizeDirect(tesseract, imageDataUrl);
+}
+
+Future<js.JsObject> _recognizeDirect(
+  js.JsObject tesseract,
+  String imageDataUrl,
+) {
   final promise = tesseract.callMethod('recognize', [
     imageDataUrl,
     _ocrLanguage,
   ]);
   return _promiseToJsObject(promise);
+}
+
+bool _isLikelyMobileBrowser() {
+  final userAgent = html.window.navigator.userAgent.toLowerCase();
+  return userAgent.contains('iphone') ||
+      userAgent.contains('ipad') ||
+      userAgent.contains('android') ||
+      userAgent.contains('mobile');
 }
 
 Future<js.JsObject> _loadTesseract() async {
