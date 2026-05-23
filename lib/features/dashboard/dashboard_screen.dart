@@ -903,7 +903,7 @@ class _CreditCardOcrSaveDraft {
 }
 
 final _creditCardOcrAmountPattern = RegExp(
-  r'[-−]\s*(?:\d{1,3}(?:[.\s]\d{3})+|\d+),\d{2}\s*(?:TL|tl|₺)?',
+  r'[-−]?\s*(?:\d{1,3}(?:[.\s]\d{3})+|\d+),\d{2}\s*(?:TL|tl|₺)?',
 );
 final _creditCardOcrTlPattern = RegExp('tl', caseSensitive: false);
 
@@ -911,14 +911,36 @@ List<double> _extractCreditCardOcrAmounts(String rawText) {
   final amounts = <double>[];
   final lines = rawText.split(RegExp(r'[\r\n]+'));
 
-  for (final line in lines) {
+  for (var index = 0; index < lines.length; index++) {
+    final line = lines[index];
     final trimmed = line.trim();
     if (trimmed.isEmpty || !_hasCreditCardOcrMoneySignal(trimmed)) {
       continue;
     }
+    if (_isCreditCardOcrIgnoredLine(trimmed)) {
+      continue;
+    }
+
+    final paymentContext = _creditCardOcrContext(
+      lines,
+      index,
+      before: 2,
+      after: 1,
+    );
+    if (_isCreditCardOcrPaymentContext(paymentContext)) {
+      continue;
+    }
+
+    final context = _creditCardOcrContext(lines, index);
+    final allowMissingMinus = _isCreditCardOcrExpenseContext(context);
 
     for (final match in _creditCardOcrAmountPattern.allMatches(trimmed)) {
-      final amount = _parseCreditCardOcrAmount(match.group(0) ?? '');
+      final rawAmount = match.group(0) ?? '';
+      final hasMinus = rawAmount.contains('-') || rawAmount.contains('−');
+      if (!hasMinus && !allowMissingMinus) {
+        continue;
+      }
+      final amount = _parseCreditCardOcrAmount(rawAmount);
       if (amount != null) {
         amounts.add(amount);
       }
@@ -928,11 +950,54 @@ List<double> _extractCreditCardOcrAmounts(String rawText) {
   return amounts;
 }
 
+String _creditCardOcrContext(
+  List<String> lines,
+  int index, {
+  int before = 3,
+  int after = 3,
+}) {
+  final start = index - before < 0 ? 0 : index - before;
+  final end =
+      index + after + 1 > lines.length ? lines.length : index + after + 1;
+  return lines.sublist(start, end).join(' ');
+}
+
 bool _hasCreditCardOcrMoneySignal(String line) {
   final lower = line.toLowerCase();
   return lower.contains('tl') ||
       line.contains('₺') ||
       _creditCardOcrAmountPattern.hasMatch(line);
+}
+
+bool _isCreditCardOcrIgnoredLine(String line) {
+  final folded = _foldCreditCardOcrText(line);
+  return folded.contains('bonus');
+}
+
+bool _isCreditCardOcrPaymentContext(String text) {
+  final folded = _foldCreditCardOcrText(text);
+  return folded.contains('kart odemesi') ||
+      folded.contains('cep sube odeme') ||
+      folded.contains('internet odeme') ||
+      folded.contains('ekstre odeme') ||
+      folded.contains('kart borcu') ||
+      folded.contains('iade');
+}
+
+bool _isCreditCardOcrExpenseContext(String text) {
+  final folded = _foldCreditCardOcrText(text);
+  return folded.contains('ertele') ||
+      folded.contains('taksitlendir') ||
+      folded.contains('akaryakit') ||
+      folded.contains('kurum odemesi') ||
+      folded.contains('giyim') ||
+      folded.contains('aksesuar') ||
+      folded.contains('dekorasyon') ||
+      folded.contains('insaat') ||
+      folded.contains('market') ||
+      folded.contains('petrol') ||
+      folded.contains('iyzico') ||
+      folded.contains('netflix');
 }
 
 double? _parseCreditCardOcrAmount(String rawAmount) {
@@ -953,6 +1018,18 @@ double? _parseCreditCardOcrAmount(String rawAmount) {
   }
 
   return parsed.abs();
+}
+
+String _foldCreditCardOcrText(String value) {
+  return value
+      .toLowerCase()
+      .replaceAll('ç', 'c')
+      .replaceAll('ğ', 'g')
+      .replaceAll('ı', 'i')
+      .replaceAll('i̇', 'i')
+      .replaceAll('ö', 'o')
+      .replaceAll('ş', 's')
+      .replaceAll('ü', 'u');
 }
 
 String _formatOcrAmountInput(double amount) {
