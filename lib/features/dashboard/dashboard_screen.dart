@@ -903,7 +903,7 @@ class _CreditCardOcrSaveDraft {
 }
 
 final _creditCardOcrAmountPattern = RegExp(
-  r'[-−]?\s*(?:\d{1,3}(?:[.\s]\d{3})+|\d+),\d{2}\s*(?:TL|tl|₺)?',
+  r'[-−]\s*(?:\d{1,3}(?:[.\s]\d{3})+|\d+),\d{2}\s*(?:TL|tl|₺)?',
 );
 final _creditCardOcrTlPattern = RegExp('tl', caseSensitive: false);
 
