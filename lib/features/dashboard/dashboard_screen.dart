@@ -903,7 +903,7 @@ class _CreditCardOcrSaveDraft {
 }
 
 final _creditCardOcrAmountPattern = RegExp(
-  r'[-−]?\s*(?:\d{1,3}(?:[.\s]\d{3})+|\d+),\d{2}\s*(?:TL|tl|₺)?',
+  '[-\\u2212]?\\s*(?:\\d{1,3}(?:[.\\s]\\d{3})+|\\d+),\\d{2}\\s*(?:TL|tl|\\u20BA)?',
 );
 final _creditCardOcrTlPattern = RegExp('tl', caseSensitive: false);
 
@@ -917,27 +917,14 @@ List<double> _extractCreditCardOcrAmounts(String rawText) {
     if (trimmed.isEmpty || !_hasCreditCardOcrMoneySignal(trimmed)) {
       continue;
     }
-    if (_isCreditCardOcrIgnoredLine(trimmed)) {
-      continue;
-    }
-
-    final paymentContext = _creditCardOcrContext(
-      lines,
-      index,
-      before: 2,
-      after: 1,
-    );
-    if (_isCreditCardOcrPaymentContext(paymentContext)) {
-      continue;
-    }
-
-    final context = _creditCardOcrContext(lines, index);
-    final allowMissingMinus = _isCreditCardOcrExpenseContext(context);
-
     for (final match in _creditCardOcrAmountPattern.allMatches(trimmed)) {
       final rawAmount = match.group(0) ?? '';
-      final hasMinus = rawAmount.contains('-') || rawAmount.contains('−');
-      if (!hasMinus && !allowMissingMinus) {
+      if (_shouldSkipCreditCardOcrAmount(
+        lines: lines,
+        lineIndex: index,
+        line: trimmed,
+        match: match,
+      )) {
         continue;
       }
       final amount = _parseCreditCardOcrAmount(rawAmount);
@@ -948,6 +935,73 @@ List<double> _extractCreditCardOcrAmounts(String rawText) {
   }
 
   return amounts;
+}
+
+bool _shouldSkipCreditCardOcrAmount({
+  required List<String> lines,
+  required int lineIndex,
+  required String line,
+  required RegExpMatch match,
+}) {
+  final rawAmount = match.group(0) ?? '';
+  final hasMinus = rawAmount.contains('-') || rawAmount.contains('\u2212');
+  final amountWindow = _creditCardOcrTextWindow(
+    line,
+    match.start,
+    match.end,
+  );
+  final previousContext = _creditCardOcrContext(
+    lines,
+    lineIndex,
+    before: 3,
+    after: 0,
+  );
+  final nextContext = _creditCardOcrContext(
+    lines,
+    lineIndex,
+    before: 0,
+    after: 3,
+  );
+  final closeContext = '$previousContext $amountWindow';
+  final widerContext = '$previousContext $amountWindow $nextContext';
+
+  if (_isCreditCardOcrIgnoredLine(amountWindow)) {
+    return true;
+  }
+
+  final isPaymentNearAmount = _isCreditCardOcrPaymentContext(amountWindow);
+  if (isPaymentNearAmount && !_isCreditCardOcrExpenseContext(amountWindow)) {
+    return true;
+  }
+
+  if (hasMinus) {
+    return false;
+  }
+
+  final hasCloseExpenseHint = _isCreditCardOcrExpenseContext(closeContext);
+  final hasClosePaymentHint = _isCreditCardOcrPaymentContext(closeContext);
+  final hasWiderExpenseHint = _isCreditCardOcrExpenseContext(widerContext);
+
+  if (hasCloseExpenseHint && !hasClosePaymentHint) {
+    return false;
+  }
+  if (hasWiderExpenseHint && !hasClosePaymentHint) {
+    return false;
+  }
+
+  return true;
+}
+
+String _creditCardOcrTextWindow(
+  String line,
+  int start,
+  int end, {
+  int before = 80,
+  int after = 60,
+}) {
+  final windowStart = start - before < 0 ? 0 : start - before;
+  final windowEnd = end + after > line.length ? line.length : end + after;
+  return line.substring(windowStart, windowEnd);
 }
 
 String _creditCardOcrContext(
@@ -965,7 +1019,7 @@ String _creditCardOcrContext(
 bool _hasCreditCardOcrMoneySignal(String line) {
   final lower = line.toLowerCase();
   return lower.contains('tl') ||
-      line.contains('₺') ||
+      line.contains('\u20BA') ||
       _creditCardOcrAmountPattern.hasMatch(line);
 }
 
@@ -1002,9 +1056,9 @@ bool _isCreditCardOcrExpenseContext(String text) {
 
 double? _parseCreditCardOcrAmount(String rawAmount) {
   final cleaned = rawAmount
-      .replaceAll('−', '-')
+      .replaceAll('\u2212', '-')
       .replaceAll(_creditCardOcrTlPattern, '')
-      .replaceAll('₺', '')
+      .replaceAll('\u20BA', '')
       .replaceAll(' ', '')
       .trim();
   if (cleaned.isEmpty) {
@@ -1021,15 +1075,34 @@ double? _parseCreditCardOcrAmount(String rawAmount) {
 }
 
 String _foldCreditCardOcrText(String value) {
-  return value
-      .toLowerCase()
-      .replaceAll('ç', 'c')
-      .replaceAll('ğ', 'g')
-      .replaceAll('ı', 'i')
-      .replaceAll('i̇', 'i')
-      .replaceAll('ö', 'o')
-      .replaceAll('ş', 's')
-      .replaceAll('ü', 'u');
+  final buffer = StringBuffer();
+  for (final rune in value.toLowerCase().runes) {
+    switch (rune) {
+      case 0x00E7:
+        buffer.write('c');
+        break;
+      case 0x011F:
+        buffer.write('g');
+        break;
+      case 0x0131:
+        buffer.write('i');
+        break;
+      case 0x0307:
+        break;
+      case 0x00F6:
+        buffer.write('o');
+        break;
+      case 0x015F:
+        buffer.write('s');
+        break;
+      case 0x00FC:
+        buffer.write('u');
+        break;
+      default:
+        buffer.writeCharCode(rune);
+    }
+  }
+  return buffer.toString();
 }
 
 String _formatOcrAmountInput(double amount) {
