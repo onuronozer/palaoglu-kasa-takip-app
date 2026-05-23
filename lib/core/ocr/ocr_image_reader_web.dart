@@ -4,34 +4,28 @@ import 'dart:js' as js;
 
 import 'ocr_image_result.dart';
 
+const _tesseractVersion = 'v5.0.0';
 const _tesseractCdn =
-    'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    'https://cdn.jsdelivr.net/npm/tesseract.js@$_tesseractVersion/dist/tesseract.min.js';
 const _tesseractWorkerCdn =
-    'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js';
+    'https://cdn.jsdelivr.net/npm/tesseract.js@$_tesseractVersion/dist/worker.min.js';
 const _tesseractCoreCdn =
-    'https://cdn.jsdelivr.net/npm/tesseract.js-core@v5.0.0';
+    'https://cdn.jsdelivr.net/npm/tesseract.js-core@$_tesseractVersion';
 const _tesseractLangCdn = 'https://tessdata.projectnaptha.com/4.0.0';
 const _ocrLanguage = 'eng';
-const _maxOcrImageSide = 1200;
+const _maxOcrImageSide = 1100;
+bool _hasRefreshedTesseractCache = false;
 
 Future<OcrImageResult?> pickImageAndReadOcrText() async {
-  final input = html.FileUploadInputElement()
-    ..accept = 'image/*'
-    ..multiple = false;
-
-  input.click();
-  await input.onChange.first;
-
-  final files = input.files;
-  if (files == null || files.isEmpty) {
+  final file = await _pickSingleImageFile();
+  if (file == null) {
     return null;
   }
 
-  final file = files.first;
   final tesseract = await _loadTesseract();
   final imageDataUrl = await _prepareImageForOcr(file);
   final result = await _recognizeImage(tesseract, imageDataUrl).timeout(
-    const Duration(seconds: 90),
+    Duration(seconds: _isLikelyMobileBrowser() ? 150 : 90),
     onTimeout: () {
       throw StateError(
         'OCR uzun sürdü ve durduruldu. Tekrar OCR ile Oku düğmesine basabilirsin.',
@@ -42,6 +36,45 @@ Future<OcrImageResult?> pickImageAndReadOcrText() async {
   final text = data is js.JsObject ? data['text']?.toString() ?? '' : '';
 
   return OcrImageResult(fileName: file.name, text: text);
+}
+
+Future<html.File?> _pickSingleImageFile() async {
+  final input = html.FileUploadInputElement()
+    ..accept = 'image/png,image/jpeg,image/webp,image/heic,image/heif,image/*'
+    ..multiple = false;
+
+  input.setAttribute('aria-hidden', 'true');
+  input.style
+    ..position = 'fixed'
+    ..left = '0'
+    ..top = '0'
+    ..width = '1px'
+    ..height = '1px'
+    ..opacity = '0'
+    ..pointerEvents = 'none'
+    ..zIndex = '-1';
+
+  html.document.body?.append(input);
+
+  try {
+    final selection = input.onChange.first
+        .then<html.Event?>((event) => event)
+        .timeout(const Duration(seconds: 90), onTimeout: () => null);
+    input.click();
+    final event = await selection;
+    if (event == null) {
+      return null;
+    }
+
+    final files = input.files;
+    if (files == null || files.isEmpty) {
+      return null;
+    }
+
+    return files.first;
+  } finally {
+    input.remove();
+  }
 }
 
 Future<String> _prepareImageForOcr(html.File file) async {
@@ -81,7 +114,7 @@ Future<String> _prepareImageForOcr(html.File file) async {
 Future<String> _readFileAsDataUrl(html.File file) async {
   final reader = html.FileReader();
   reader.readAsDataUrl(file);
-  await reader.onLoad.first;
+  await reader.onLoad.first.timeout(const Duration(seconds: 20));
   final result = reader.result?.toString();
   if (result == null || result.isEmpty) {
     throw StateError('Görsel tekrar okunamadı. Dosyayı yeniden seç.');
@@ -93,17 +126,6 @@ Future<js.JsObject> _recognizeImage(
   js.JsObject tesseract,
   String imageDataUrl,
 ) async {
-  if (_isLikelyMobileBrowser()) {
-    try {
-      return await _recognizeDirect(tesseract, imageDataUrl).timeout(
-        const Duration(seconds: 35),
-      );
-    } catch (_) {
-      // Mobile browsers sometimes fail the default worker path; try the
-      // explicit worker configuration below before giving up.
-    }
-  }
-
   final createWorker = tesseract['createWorker'];
   if (createWorker != null) {
     js.JsObject? worker;
@@ -111,24 +133,30 @@ Future<js.JsObject> _recognizeImage(
       final workerPromise = tesseract.callMethod('createWorker', [
         _ocrLanguage,
         1,
-        js.JsObject.jsify({
-          'workerPath': _tesseractWorkerCdn,
-          'corePath': _tesseractCoreCdn,
-          'langPath': _tesseractLangCdn,
-          'cacheMethod': 'none',
-          'workerBlobURL': false,
-        }),
+        _tesseractOptions(),
       ]);
       worker = await _promiseToJsObject(workerPromise).timeout(
-        const Duration(seconds: 45),
+        Duration(seconds: _isLikelyMobileBrowser() ? 75 : 45),
       );
       final resultPromise = worker.callMethod('recognize', [imageDataUrl]);
-      return await _promiseToJsObject(resultPromise);
+      final result = await _promiseToJsObject(resultPromise).timeout(
+        Duration(seconds: _isLikelyMobileBrowser() ? 90 : 60),
+      );
+      _hasRefreshedTesseractCache = true;
+      return result;
     } catch (_) {
-      return _recognizeDirect(tesseract, imageDataUrl);
+      final result = await _recognizeDirect(tesseract, imageDataUrl).timeout(
+        Duration(seconds: _isLikelyMobileBrowser() ? 90 : 45),
+      );
+      _hasRefreshedTesseractCache = true;
+      return result;
     } finally {
       if (worker != null) {
-        await _promiseToAny(worker.callMethod('terminate', []));
+        try {
+          await _promiseToAny(worker.callMethod('terminate', [])).timeout(
+            const Duration(seconds: 8),
+          );
+        } catch (_) {}
       }
     }
   }
@@ -143,8 +171,18 @@ Future<js.JsObject> _recognizeDirect(
   final promise = tesseract.callMethod('recognize', [
     imageDataUrl,
     _ocrLanguage,
+    _tesseractOptions(),
   ]);
   return _promiseToJsObject(promise);
+}
+
+js.JsObject _tesseractOptions() {
+  return js.JsObject.jsify({
+    'workerPath': _tesseractWorkerCdn,
+    'corePath': _tesseractCoreCdn,
+    'langPath': _tesseractLangCdn,
+    'cacheMethod': _hasRefreshedTesseractCache ? 'write' : 'refresh',
+  });
 }
 
 bool _isLikelyMobileBrowser() {
@@ -165,6 +203,7 @@ Future<js.JsObject> _loadTesseract() async {
   final script = html.ScriptElement()
     ..src = _tesseractCdn
     ..async = true;
+  script.setAttribute('crossorigin', 'anonymous');
 
   script.onLoad.first.then((_) {
     if (!completer.isCompleted) {
@@ -181,7 +220,7 @@ Future<js.JsObject> _loadTesseract() async {
 
   html.document.head?.append(script);
   await completer.future.timeout(
-    const Duration(seconds: 20),
+    Duration(seconds: _isLikelyMobileBrowser() ? 35 : 20),
     onTimeout: () => throw StateError('OCR motoru çok geç yüklendi.'),
   );
 

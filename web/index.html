@@ -19,6 +19,48 @@
   <title>Palaoğlu Kasa Takip</title>
 </head>
 <body>
+  <script>
+    (function () {
+      var reloadKey = 'palaoglu-sw-cleared-v1';
+      var workerCleanup = Promise.resolve();
+      var cacheCleanup = Promise.resolve();
+
+      if ('caches' in window) {
+        cacheCleanup = caches.keys()
+          .then(function (keys) {
+            return Promise.all(keys.map(function (key) {
+              if (key.indexOf('flutter') !== -1 ||
+                  key.indexOf('palaoglu') !== -1) {
+                return caches.delete(key);
+              }
+              return Promise.resolve();
+            }));
+          })
+          .catch(function () {});
+      }
+
+      if ('serviceWorker' in navigator) {
+        workerCleanup = navigator.serviceWorker.getRegistrations()
+          .then(function (registrations) {
+            return Promise.all(registrations.map(function (registration) {
+              return registration.unregister();
+            }));
+          })
+          .catch(function () {});
+      }
+
+      Promise.all([workerCleanup, cacheCleanup])
+        .then(function () {
+          if ('serviceWorker' in navigator &&
+              navigator.serviceWorker.controller &&
+              !sessionStorage.getItem(reloadKey)) {
+            sessionStorage.setItem(reloadKey, '1');
+            window.location.reload();
+          }
+        })
+        .catch(function () {});
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

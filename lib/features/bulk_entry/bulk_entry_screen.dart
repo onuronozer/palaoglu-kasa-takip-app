@@ -116,6 +116,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
                     onRemoveRow: _removeDesktopRow,
                     onClearEmptyRows: _clearEmptyDesktopRows,
                     onReadCreditCardOcr: _readCreditCardOcrToDesktopRows,
+                    onReadCreditCardText: _readCreditCardTextToDesktopRows,
                     onSave:
                         appUser == null ? null : () => _saveDesktop(appUser),
                   );
@@ -161,6 +162,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
                         isSaving: _isSavingCreditCard,
                         isReadingOcr: _isReadingCreditCardOcr,
                         onReadOcr: _readCreditCardOcrToBoxes,
+                        onReadText: _readCreditCardTextToBoxes,
                         onAddBoxes: () {
                           setState(() {
                             _addCreditCardControllers(5);
@@ -577,6 +579,37 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
       return;
     }
 
+    _fillCreditCardBoxes(amounts);
+  }
+
+  Future<void> _readCreditCardTextToBoxes() async {
+    final amounts = await _askCreditCardTextAmounts();
+    if (amounts == null || amounts.isEmpty) {
+      return;
+    }
+
+    _fillCreditCardBoxes(amounts);
+  }
+
+  Future<void> _readCreditCardOcrToDesktopRows() async {
+    final amounts = await _pickCreditCardOcrAmounts();
+    if (amounts == null || amounts.isEmpty) {
+      return;
+    }
+
+    _fillCreditCardDesktopRows(amounts);
+  }
+
+  Future<void> _readCreditCardTextToDesktopRows() async {
+    final amounts = await _askCreditCardTextAmounts();
+    if (amounts == null || amounts.isEmpty) {
+      return;
+    }
+
+    _fillCreditCardDesktopRows(amounts);
+  }
+
+  void _fillCreditCardBoxes(List<double> amounts) {
     setState(() {
       for (final amount in amounts) {
         var targetIndex = _creditCardControllers.indexWhere(
@@ -594,12 +627,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
     });
   }
 
-  Future<void> _readCreditCardOcrToDesktopRows() async {
-    final amounts = await _pickCreditCardOcrAmounts();
-    if (amounts == null || amounts.isEmpty) {
-      return;
-    }
-
+  void _fillCreditCardDesktopRows(List<double> amounts) {
     setState(() {
       for (final amount in amounts) {
         final row = _findEmptyDesktopRowForOcr();
@@ -608,6 +636,59 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
         row.amountController.text = _formatCreditCardOcrAmountInput(amount);
       }
     });
+  }
+
+  Future<List<double>?> _askCreditCardTextAmounts() async {
+    final controller = TextEditingController();
+    final text = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Yazıdan tutar al'),
+          content: SizedBox(
+            width: 520,
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              minLines: 7,
+              maxLines: 12,
+              decoration: const InputDecoration(
+                hintText: 'Banka ekranından kopyalanan yazıyı buraya yapıştır.',
+                alignLabelWithHint: true,
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Vazgeç'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).pop(controller.text),
+              icon: const Icon(Icons.playlist_add_check_outlined),
+              label: const Text('Tutarları Al'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+
+    if (text == null) {
+      return null;
+    }
+
+    final amounts = _extractCreditCardOcrAmounts(text);
+    if (amounts.isEmpty) {
+      _showSnack('Yapıştırılan yazıda tutar bulunamadı.');
+      return const <double>[];
+    }
+
+    final total = amounts.fold<double>(0, (sum, amount) => sum + amount);
+    _showSnack(
+      '${amounts.length} tutar alındı. Toplam ${_formatCreditCardOcrTotal(total)}.',
+    );
+    return amounts;
   }
 
   Future<List<double>?> _pickCreditCardOcrAmounts() async {
@@ -881,6 +962,7 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
     required this.onRemoveRow,
     required this.onClearEmptyRows,
     required this.onReadCreditCardOcr,
+    required this.onReadCreditCardText,
     required this.onSave,
   });
 
@@ -898,6 +980,7 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
   final ValueChanged<int> onRemoveRow;
   final VoidCallback onClearEmptyRows;
   final VoidCallback onReadCreditCardOcr;
+  final VoidCallback onReadCreditCardText;
   final VoidCallback? onSave;
 
   @override
@@ -1032,6 +1115,14 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
                                 ? 'OCR okunuyor...'
                                 : 'Kredi Kartı OCR',
                           ),
+                        ),
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          onPressed: isSaving || isReadingOcr
+                              ? null
+                              : onReadCreditCardText,
+                          icon: const Icon(Icons.edit_note_outlined),
+                          label: const Text('Metinden Tutar Al'),
                         ),
                         const Spacer(),
                         ElevatedButton.icon(
@@ -1786,6 +1877,7 @@ class _CreditCardBulkCard extends StatelessWidget {
     required this.isSaving,
     required this.isReadingOcr,
     required this.onReadOcr,
+    required this.onReadText,
     required this.onAddBoxes,
     required this.onChanged,
     required this.onSave,
@@ -1795,6 +1887,7 @@ class _CreditCardBulkCard extends StatelessWidget {
   final bool isSaving;
   final bool isReadingOcr;
   final VoidCallback onReadOcr;
+  final VoidCallback onReadText;
   final VoidCallback onAddBoxes;
   final VoidCallback onChanged;
   final VoidCallback? onSave;
@@ -1902,6 +1995,12 @@ class _CreditCardBulkCard extends StatelessWidget {
             onPressed: isSaving || isReadingOcr ? null : onReadOcr,
             icon: const Icon(Icons.document_scanner_outlined),
             label: Text(isReadingOcr ? 'OCR okunuyor...' : 'OCR ile Oku'),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: isSaving || isReadingOcr ? null : onReadText,
+            icon: const Icon(Icons.edit_note_outlined),
+            label: const Text('Metinden Tutar Al'),
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
