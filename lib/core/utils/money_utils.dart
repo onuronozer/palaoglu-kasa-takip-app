@@ -26,10 +26,30 @@ class MoneyUtils {
       return 0;
     }
 
-    final normalized = cleaned.contains(',') && cleaned.contains('.')
-        ? cleaned.replaceAll('.', '').replaceAll(',', '.')
-        : cleaned.replaceAll(',', '.');
+    final normalized = _normalizeNumberInput(cleaned);
 
     return double.tryParse(normalized) ?? 0;
+  }
+
+  static String _normalizeNumberInput(String value) {
+    if (value.contains(',') && value.contains('.')) {
+      return value.replaceAll('.', '').replaceAll(',', '.');
+    }
+
+    if (value.contains(',')) {
+      return value.replaceAll(',', '.');
+    }
+
+    if (value.contains('.')) {
+      final parts = value.split('.');
+      final looksLikeThousands = parts.length > 1 &&
+          parts.last.length == 3 &&
+          parts.every((part) => part.isNotEmpty);
+      if (looksLikeThousands) {
+        return value.replaceAll('.', '');
+      }
+    }
+
+    return value;
   }
 }
