@@ -1047,7 +1047,45 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
                           ),
                         ),
                         _DesktopTotalBadge(total: total),
-                        const SizedBox(width: 12),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed:
+                              isSaving || isReadingOcr ? null : onAddRows,
+                          icon: const Icon(Icons.add),
+                          label: const Text('5 satır ekle'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: isSaving || isReadingOcr
+                              ? null
+                              : onClearEmptyRows,
+                          icon: const Icon(Icons.cleaning_services_outlined),
+                          label: const Text('Boşları temizle'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: isSaving || isReadingOcr
+                              ? null
+                              : onReadCreditCardOcr,
+                          icon: const Icon(Icons.document_scanner_outlined),
+                          label: Text(
+                            isReadingOcr
+                                ? 'OCR okunuyor...'
+                                : 'Kredi Kartı OCR',
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: isSaving || isReadingOcr
+                              ? null
+                              : onReadCreditCardText,
+                          icon: const Icon(Icons.edit_note_outlined),
+                          label: const Text('Metinden Tutar Al'),
+                        ),
                         ElevatedButton.icon(
                           onPressed: isSaving || isReadingOcr || appUser == null
                               ? null
@@ -1096,55 +1134,6 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
                             ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed:
-                              isSaving || isReadingOcr ? null : onAddRows,
-                          icon: const Icon(Icons.add),
-                          label: const Text('5 satır ekle'),
-                        ),
-                        const SizedBox(width: 10),
-                        OutlinedButton.icon(
-                          onPressed: isSaving || isReadingOcr
-                              ? null
-                              : onClearEmptyRows,
-                          icon: const Icon(Icons.cleaning_services_outlined),
-                          label: const Text('Boşları temizle'),
-                        ),
-                        const SizedBox(width: 10),
-                        OutlinedButton.icon(
-                          onPressed: isSaving || isReadingOcr
-                              ? null
-                              : onReadCreditCardOcr,
-                          icon: const Icon(Icons.document_scanner_outlined),
-                          label: Text(
-                            isReadingOcr
-                                ? 'OCR okunuyor...'
-                                : 'Kredi Kartı OCR',
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        OutlinedButton.icon(
-                          onPressed: isSaving || isReadingOcr
-                              ? null
-                              : onReadCreditCardText,
-                          icon: const Icon(Icons.edit_note_outlined),
-                          label: const Text('Metinden Tutar Al'),
-                        ),
-                        const Spacer(),
-                        ElevatedButton.icon(
-                          onPressed: isSaving || isReadingOcr || appUser == null
-                              ? null
-                              : onSave,
-                          icon: const Icon(Icons.save_outlined),
-                          label: Text(
-                            isSaving ? 'Kaydediliyor...' : 'Satırları Kaydet',
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),

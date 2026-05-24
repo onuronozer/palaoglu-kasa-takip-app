@@ -978,7 +978,24 @@ class _FarmDesktopBulkPanel extends StatelessWidget {
                           ),
                         ),
                         _FarmDesktopTotalBadge(total: total),
-                        const SizedBox(width: 12),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: isSaving ? null : onAddRows,
+                          icon: const Icon(Icons.add),
+                          label: const Text('5 satır ekle'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: isSaving ? null : onClearEmptyRows,
+                          icon: const Icon(Icons.cleaning_services_outlined),
+                          label: const Text('Boşları temizle'),
+                        ),
                         ElevatedButton.icon(
                           onPressed: isSaving ? null : onSave,
                           icon: const Icon(Icons.save_outlined),
@@ -1035,30 +1052,6 @@ class _FarmDesktopBulkPanel extends StatelessWidget {
                             ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: isSaving ? null : onAddRows,
-                          icon: const Icon(Icons.add),
-                          label: const Text('5 satır ekle'),
-                        ),
-                        const SizedBox(width: 10),
-                        OutlinedButton.icon(
-                          onPressed: isSaving ? null : onClearEmptyRows,
-                          icon: const Icon(Icons.cleaning_services_outlined),
-                          label: const Text('Boşları temizle'),
-                        ),
-                        const Spacer(),
-                        ElevatedButton.icon(
-                          onPressed: isSaving ? null : onSave,
-                          icon: const Icon(Icons.save_outlined),
-                          label: Text(
-                            isSaving ? 'Kaydediliyor...' : 'Satırları Kaydet',
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
