@@ -1047,6 +1047,16 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
                           ),
                         ),
                         _DesktopTotalBadge(total: total),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: isSaving || isReadingOcr || appUser == null
+                              ? null
+                              : onSave,
+                          icon: const Icon(Icons.save_outlined),
+                          label: Text(
+                            isSaving ? 'Kaydediliyor...' : 'Kaydet',
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),

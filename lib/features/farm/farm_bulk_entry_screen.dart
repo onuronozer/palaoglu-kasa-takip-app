@@ -978,6 +978,14 @@ class _FarmDesktopBulkPanel extends StatelessWidget {
                           ),
                         ),
                         _FarmDesktopTotalBadge(total: total),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: isSaving ? null : onSave,
+                          icon: const Icon(Icons.save_outlined),
+                          label: Text(
+                            isSaving ? 'Kaydediliyor...' : 'Kaydet',
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
