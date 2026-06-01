@@ -23,6 +23,7 @@ import 'features/farm/farm_worker_screen.dart';
 import 'features/farm/merchant_screen.dart';
 import 'features/records/edit_transaction_screen.dart';
 import 'features/records/records_screen.dart';
+import 'features/report/report_detail_screen.dart';
 import 'features/report/report_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -89,6 +90,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           return AuthGate(
             child: ReportScreen(
+              initialMonthKey: state.uri.queryParameters['month'],
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/report/detail',
+        builder: (context, state) {
+          return AuthGate(
+            child: ReportDetailScreen(
+              detailType: state.uri.queryParameters['type'] ?? '',
               initialMonthKey: state.uri.queryParameters['month'],
             ),
           );

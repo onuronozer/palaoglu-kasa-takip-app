@@ -96,9 +96,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                           );
                           final employeeSummaries =
                               ReportUtils.employeeSalarySummaries(
-                                employees,
-                                transactions,
-                              );
+                            employees,
+                            transactions,
+                          );
                           final debts = ReportUtils.debtByPerson(transactions);
 
                           return Column(
@@ -109,10 +109,10 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                                 onWhatsapp: () async {
                                   final opened =
                                       await WhatsAppUtils.openMonthlySummary(
-                                        monthLabel: monthLabel,
-                                        summary: summary,
-                                        employeeSummaries: employeeSummaries,
-                                      );
+                                    monthLabel: monthLabel,
+                                    summary: summary,
+                                    employeeSummaries: employeeSummaries,
+                                  );
                                   if (!mounted) {
                                     return;
                                   }
@@ -128,7 +128,10 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                                 },
                               ),
                               const SizedBox(height: 16),
-                              ReportSummaryCards(summary: summary),
+                              ReportSummaryCards(
+                                summary: summary,
+                                monthKey: monthKey,
+                              ),
                               const SizedBox(height: 16),
                               ExpenseDetailTableCard(
                                 transactions: transactions,

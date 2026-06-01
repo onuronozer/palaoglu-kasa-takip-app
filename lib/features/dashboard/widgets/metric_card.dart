@@ -9,6 +9,7 @@ class MetricCard extends StatelessWidget {
     required this.icon,
     required this.color,
     this.subtitle,
+    this.onTap,
     super.key,
   });
 
@@ -17,14 +18,16 @@ class MetricCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String? subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final borderRadius = BorderRadius.circular(22);
+    final card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: borderRadius,
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
@@ -62,6 +65,10 @@ class MetricCard extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (onTap != null) ...[
+                const SizedBox(width: 6),
+                Icon(Icons.chevron_right, color: color, size: 20),
+              ],
             ],
           ),
           const Spacer(),
@@ -86,6 +93,19 @@ class MetricCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) {
+      return card;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: borderRadius,
+        child: card,
       ),
     );
   }
