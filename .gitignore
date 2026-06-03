@@ -10,6 +10,8 @@ coverage/
 # Firebase generated/local
 .firebase/
 firebase-debug.log
+functions/node_modules/
+functions/package-lock.json
 
 # IDE
 .idea/

@@ -9,8 +9,10 @@ import '../../data/models/announcement_model.dart';
 import '../../data/models/app_user.dart';
 import '../../data/models/reminder_model.dart';
 import '../../data/repositories/announcement_repository.dart';
+import '../../data/repositories/push_token_repository.dart';
 import '../../data/repositories/reminder_repository.dart';
 import '../auth/auth_controller.dart';
+import '../../core/notifications/push_notification_service.dart';
 
 class RemindersScreen extends ConsumerStatefulWidget {
   const RemindersScreen({super.key});
@@ -76,7 +78,10 @@ class _RemindersScreenState extends ConsumerState<RemindersScreen> {
                 children: [
                   _NotificationStatusCard(
                     supported: supported,
-                    onEnable: () => _enableNotifications(notificationService),
+                    onEnable: () => _enableNotifications(
+                      notificationService: notificationService,
+                      appUser: appUser,
+                    ),
                     onTest: () => _testNotification(notificationService),
                   ),
                   announcementsState.when(
@@ -156,23 +161,28 @@ class _RemindersScreenState extends ConsumerState<RemindersScreen> {
     );
   }
 
-  Future<void> _enableNotifications(
-    LocalNotificationService notificationService,
-  ) async {
-    final granted = await notificationService.requestPermission();
+  Future<void> _enableNotifications({
+    required LocalNotificationService notificationService,
+    required AppUser? appUser,
+  }) async {
+    if (appUser == null) {
+      _showSnack('Oturum bulunamadı.');
+      return;
+    }
+    final registered =
+        await ref.read(pushNotificationServiceProvider).registerForUser(
+              user: appUser,
+              tokenRepository: ref.read(pushTokenRepositoryProvider),
+              localNotifications: notificationService,
+            );
     if (!mounted) {
       return;
     }
-    if (!granted) {
+    if (!registered) {
       _showSnack('Bildirim izni verilmedi.');
       return;
     }
-    await notificationService.ensureDailyReminderScheduled();
-    final reminders = ref.read(remindersProvider).valueOrNull;
-    if (reminders != null) {
-      await notificationService.rescheduleActiveReminders(reminders);
-    }
-    _showSnack('Bildirimler açıldı. Günlük 12:00 ciro uyarısı kuruldu.');
+    _showSnack('Bildirimler açıldı.');
   }
 
   Future<void> _testNotification(

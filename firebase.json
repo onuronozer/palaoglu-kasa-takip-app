@@ -1,1 +1,35 @@
-{"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}]},"firestore":{"rules":"firestore.rules"},"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"palaoglu-14bf0","configurations":{"web":"1:723944539541:web:adc825bb2bc4afc82b229c"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "palaoglu-14bf0",
+          "configurations": {
+            "web": "1:723944539541:web:adc825bb2bc4afc82b229c"
+          }
+        }
+      }
+    }
+  }
+}

@@ -80,6 +80,31 @@ flutter run -d chrome
 flutter build web --release
 ```
 
+## Push Bildirimler
+
+Kapalı uygulamaya bildirim için Firebase Cloud Messaging ve Cloud Functions kullanılır.
+
+Gerekli Firebase tarafı:
+
+- Firebase projesinde Blaze plan açık olmalı.
+- Firebase Console > Project Settings > Cloud Messaging içinde iOS için APNs key/certificate tanımlı olmalı.
+- Apple Developer ve Xcode tarafında Push Notifications ve Background Modes > Remote notifications açık olmalı.
+
+Functions deploy:
+
+```bash
+cd functions
+npm install
+cd ..
+firebase deploy --only functions,firestore:rules
+```
+
+Bu deploy sonrası:
+
+- `duyurular` koleksiyonuna yeni kayıt eklenince tüm aktif cihazlara push gider.
+- Her gün 12:00'de günlük ciro hatırlatması gider.
+- `hatirlatmalar` koleksiyonundaki zamanı gelen yapılacak işler 5 dakikada bir kontrol edilip gönderilir.
+
 9. Netlify deploy.
    - Netlify'da yeni site oluştur.
    - Manuel deploy için `build/web` klasörünü sürükleyip bırak.

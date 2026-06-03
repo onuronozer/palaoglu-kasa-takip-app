@@ -51,6 +51,14 @@ service cloud.firestore {
       allow create, update, delete: if adminUser();
     }
 
+    match /fcm_tokens/{tokenId} {
+      allow read: if adminUser();
+      allow create, update: if activeUser()
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if activeUser()
+        && resource.data.uid == request.auth.uid;
+    }
+
     match /tuccarlar/{merchantId} {
       allow read, create, update, delete: if activeUser();
     }
