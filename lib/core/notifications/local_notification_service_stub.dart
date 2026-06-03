@@ -1,0 +1,31 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../data/models/reminder_model.dart';
+
+final localNotificationServiceProvider = Provider<LocalNotificationService>((
+  ref,
+) {
+  return LocalNotificationService();
+});
+
+class LocalNotificationService {
+  LocalNotificationService();
+
+  bool get isSupported => false;
+
+  Future<bool> initialize() async => false;
+
+  Future<bool> requestPermission() async => false;
+
+  Future<bool> areNotificationsEnabled() async => false;
+
+  Future<void> ensureDailyReminderScheduled() async {}
+
+  Future<void> scheduleReminder(ReminderModel reminder) async {}
+
+  Future<void> cancelReminder(ReminderModel reminder) async {}
+
+  Future<void> rescheduleActiveReminders(List<ReminderModel> reminders) async {}
+
+  Future<void> showTestNotification() async {}
+}

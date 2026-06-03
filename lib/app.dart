@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/notifications/notification_bootstrap.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
+import 'features/business_overview/business_overview_screen.dart';
 import 'features/business_selection/business_selection_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/employees/employee_settings_screen.dart';
@@ -23,6 +25,7 @@ import 'features/farm/farm_worker_screen.dart';
 import 'features/farm/merchant_screen.dart';
 import 'features/records/edit_transaction_screen.dart';
 import 'features/records/records_screen.dart';
+import 'features/reminders/reminders_screen.dart';
 import 'features/report/report_detail_screen.dart';
 import 'features/report/report_screen.dart';
 
@@ -40,6 +43,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/kiraathane',
         builder: (context, state) {
           return const AuthGate(child: DashboardScreen());
+        },
+      ),
+      GoRoute(
+        path: '/overview',
+        builder: (context, state) {
+          return const AuthGate(child: BusinessOverviewScreen());
         },
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
@@ -110,6 +119,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/employees',
         builder: (context, state) {
           return const AuthGate(child: EmployeeSettingsScreen());
+        },
+      ),
+      GoRoute(
+        path: '/reminders',
+        builder: (context, state) {
+          return const AuthGate(child: RemindersScreen());
         },
       ),
       GoRoute(
@@ -260,7 +275,7 @@ class AuthGate extends ConsumerWidget {
               );
             }
 
-            return child;
+            return NotificationBootstrap(child: child);
           },
         );
       },

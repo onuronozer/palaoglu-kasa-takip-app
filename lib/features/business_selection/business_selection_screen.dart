@@ -86,6 +86,16 @@ class BusinessSelectionScreen extends ConsumerWidget {
                     color: AppColors.turquoise,
                     onTap: () => context.go('/farm'),
                   ),
+                  if (user?.isAdmin == true) ...[
+                    const SizedBox(height: 14),
+                    _BusinessCard(
+                      title: 'Tüm İşletmelerim',
+                      subtitle: 'Kıraathane ve tarım için kısa yönetici özeti',
+                      icon: Icons.dashboard_customize_outlined,
+                      color: AppColors.bank,
+                      onTap: () => context.go('/overview'),
+                    ),
+                  ],
                 ],
               ),
             ),

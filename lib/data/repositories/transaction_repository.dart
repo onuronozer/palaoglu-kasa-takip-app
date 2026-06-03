@@ -12,13 +12,35 @@ final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
 
 final transactionsByMonthProvider =
     StreamProvider.family<List<TransactionModel>, String>((ref, monthKey) {
-      return ref.watch(transactionRepositoryProvider).watchByMonth(monthKey);
-    });
+  return ref.watch(transactionRepositoryProvider).watchByMonth(monthKey);
+});
+
+final transactionsByDateRangeProvider =
+    StreamProvider.family<List<TransactionModel>, DateRangeQuery>((ref, query) {
+  return ref.watch(transactionRepositoryProvider).watchByDateRange(query);
+});
 
 final transactionByIdProvider =
     StreamProvider.family<TransactionModel?, String>((ref, transactionId) {
-      return ref.watch(transactionRepositoryProvider).watchById(transactionId);
-    });
+  return ref.watch(transactionRepositoryProvider).watchById(transactionId);
+});
+
+class DateRangeQuery {
+  const DateRangeQuery({required this.startDate, required this.endDate});
+
+  final String startDate;
+  final String endDate;
+
+  @override
+  bool operator ==(Object other) {
+    return other is DateRangeQuery &&
+        other.startDate == startDate &&
+        other.endDate == endDate;
+  }
+
+  @override
+  int get hashCode => Object.hash(startDate, endDate);
+}
 
 class TransactionRepository {
   TransactionRepository(this._firestore);
@@ -52,6 +74,31 @@ class TransactionRepository {
         return items;
       },
     );
+  }
+
+  Stream<List<TransactionModel>> watchByDateRange(DateRangeQuery query) {
+    return _transactions
+        .where('date', isGreaterThanOrEqualTo: query.startDate)
+        .where('date', isLessThanOrEqualTo: query.endDate)
+        .snapshots()
+        .map((snapshot) {
+      final items = snapshot.docs
+          .map(TransactionModel.fromDoc)
+          .where((transaction) => transaction.status == 'active')
+          .toList();
+
+      items.sort((a, b) {
+        final byDate = b.date.compareTo(a.date);
+        if (byDate != 0) {
+          return byDate;
+        }
+        final aCreatedAt = a.createdAt ?? DateTime(1900);
+        final bCreatedAt = b.createdAt ?? DateTime(1900);
+        return bCreatedAt.compareTo(aCreatedAt);
+      });
+
+      return items;
+    });
   }
 
   Stream<TransactionModel?> watchById(String transactionId) {
