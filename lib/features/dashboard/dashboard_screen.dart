@@ -318,7 +318,7 @@ class _Header extends ConsumerWidget {
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             blurRadius: 28,
             offset: const Offset(0, 16),
           ),
@@ -333,7 +333,7 @@ class _Header extends ConsumerWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.15),
+                  color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(19),
                 ),
                 child: const Center(
@@ -399,7 +399,7 @@ class _UserPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
+        color: AppColors.background.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: AppColors.border),
       ),
@@ -500,6 +500,12 @@ class _ActionGrid extends StatelessWidget {
         icon: Icons.badge_outlined,
         color: AppColors.warning,
         onTap: () => context.push('/entry/isci?month=$monthKey'),
+      ),
+      _ActionItem(
+        title: 'AI Fiş Oku',
+        icon: Icons.auto_awesome_outlined,
+        color: AppColors.turquoise,
+        onTap: () => context.push('/ai-receipt?month=$monthKey'),
       ),
       _ActionItem(
         title: isReadingOcr ? 'OCR Okunuyor' : 'Kredi Kartı OCR',
@@ -746,7 +752,7 @@ class _CreditCardOcrReviewDialogState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               DropdownButtonFormField<int>(
-                value: _day,
+                initialValue: _day,
                 decoration: const InputDecoration(labelText: 'Kayıt günü'),
                 items: [
                   for (final day in days)

@@ -27,7 +27,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Kredi karti ekstresi gorselinden tutarlari okumak icin fotograf secimi kullanilir.</string>
+	<string>AI fis ve kredi karti gorsellerini okumak icin fotograf secimi kullanilir.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

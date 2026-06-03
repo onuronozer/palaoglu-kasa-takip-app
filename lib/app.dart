@@ -7,6 +7,7 @@ import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'features/admin/announcement_screen.dart';
 import 'features/admin/user_management_screen.dart';
+import 'features/ai_receipt/ai_receipt_screen.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
 import 'features/business_overview/business_overview_screen.dart';
@@ -82,6 +83,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           return AuthGate(
             child: BulkEntryScreen(
+              initialMonthKey: state.uri.queryParameters['month'],
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/ai-receipt',
+        builder: (context, state) {
+          return AuthGate(
+            child: AiReceiptScreen(
               initialMonthKey: state.uri.queryParameters['month'],
             ),
           );
