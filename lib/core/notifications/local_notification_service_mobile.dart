@@ -211,26 +211,6 @@ class LocalNotificationService {
     );
   }
 
-  Future<void> showPushMessage({
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-  }) async {
-    final ready = await initialize();
-    if (!ready) {
-      return;
-    }
-
-    await _plugin.show(
-      id.abs() % 2147483647,
-      title,
-      body,
-      _notificationDetails(),
-      payload: payload,
-    );
-  }
-
   NotificationDetails _notificationDetails() {
     const android = AndroidNotificationDetails(
       'palaoglu_reminders',

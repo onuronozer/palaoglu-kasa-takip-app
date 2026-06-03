@@ -156,13 +156,6 @@ class BusinessOverviewScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/'),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Yapılacak İşler',
-            onPressed: () => context.push('/reminders'),
-            icon: const Icon(Icons.task_alt_outlined),
-          ),
-        ],
       ),
       body: SafeArea(
         child: Center(
@@ -248,12 +241,6 @@ class BusinessOverviewScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _AdminActionGrid(
                     actions: [
-                      _AdminAction(
-                        title: 'Yapılacak İşler',
-                        icon: Icons.task_alt_outlined,
-                        color: AppColors.debt,
-                        onTap: () => context.push('/reminders'),
-                      ),
                       _AdminAction(
                         title: 'Duyuru Gönder',
                         icon: Icons.campaign_outlined,

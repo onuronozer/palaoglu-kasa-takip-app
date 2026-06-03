@@ -31,11 +31,4 @@ class LocalNotificationService {
   Future<void> showTestNotification() async {}
 
   Future<void> showAnnouncement(AnnouncementModel announcement) async {}
-
-  Future<void> showPushMessage({
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-  }) async {}
 }
