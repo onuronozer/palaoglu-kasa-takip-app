@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../data/models/announcement_model.dart';
 import '../../data/models/reminder_model.dart';
 
 final localNotificationServiceProvider = Provider<LocalNotificationService>((
@@ -21,6 +23,8 @@ class LocalNotificationService {
   static bool _timezoneReady = false;
 
   static const int dailyReminderId = 1200;
+  static const String _scheduledReminderIdsKey =
+      'palaoglu_scheduled_reminder_ids_v1';
 
   bool get isSupported =>
       defaultTargetPlatform == TargetPlatform.android ||
@@ -56,7 +60,7 @@ class LocalNotificationService {
     if (defaultTargetPlatform == TargetPlatform.android) {
       final android = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
-      return await android?.requestNotificationsPermission() ?? false;
+      return await android?.requestNotificationsPermission() ?? true;
     }
 
     if (defaultTargetPlatform == TargetPlatform.iOS) {
@@ -96,8 +100,8 @@ class LocalNotificationService {
 
     await _plugin.zonedSchedule(
       dailyReminderId,
-      'Günlük kayıt hatırlatması',
-      'Dünkü ciro, masraf ve ödemeleri girmeyi unutmayın.',
+      'Günlük ciro hatırlatması',
+      'Bugünün cirosunu girmeyi unutma.',
       _nextTime(hour: 12, minute: 0),
       _notificationDetails(),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -120,7 +124,9 @@ class LocalNotificationService {
     await _plugin.zonedSchedule(
       reminder.notificationId,
       reminder.title,
-      reminder.note.trim().isEmpty ? 'Hatırlatma zamanı geldi.' : reminder.note,
+      reminder.note.trim().isEmpty
+          ? 'Yapılacak iş zamanı geldi.'
+          : reminder.note,
       scheduledAt,
       _notificationDetails(),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -143,6 +149,22 @@ class LocalNotificationService {
     if (!isSupported) {
       return;
     }
+    await initialize();
+    final prefs = await SharedPreferences.getInstance();
+    final knownIds = (prefs.getStringList(_scheduledReminderIdsKey) ?? const [])
+        .map(int.tryParse)
+        .whereType<int>()
+        .toSet();
+    final targetReminders = reminders
+        .where((reminder) => reminder.active && !reminder.isPast)
+        .toList();
+    final targetIds =
+        targetReminders.map((reminder) => reminder.notificationId).toSet();
+
+    for (final staleId in knownIds.difference(targetIds)) {
+      await _plugin.cancel(staleId);
+    }
+
     for (final reminder in reminders) {
       if (reminder.active && !reminder.isPast) {
         await scheduleReminder(reminder);
@@ -150,6 +172,11 @@ class LocalNotificationService {
         await cancelReminder(reminder);
       }
     }
+
+    await prefs.setStringList(
+      _scheduledReminderIdsKey,
+      targetIds.map((id) => '$id').toList(),
+    );
   }
 
   Future<void> showTestNotification() async {
@@ -167,13 +194,32 @@ class LocalNotificationService {
     );
   }
 
+  Future<void> showAnnouncement(AnnouncementModel announcement) async {
+    final granted = await requestPermission();
+    if (!granted) {
+      return;
+    }
+
+    await _plugin.show(
+      announcement.notificationId,
+      announcement.title,
+      announcement.message.trim().isEmpty
+          ? 'Yeni duyuru var.'
+          : announcement.message,
+      _notificationDetails(),
+      payload: 'announcement:${announcement.id}',
+    );
+  }
+
   NotificationDetails _notificationDetails() {
     const android = AndroidNotificationDetails(
       'palaoglu_reminders',
-      'Palaoğlu Hatırlatmalar',
-      channelDescription: 'Günlük kayıt ve manuel ödeme hatırlatmaları',
+      'Palaoğlu Yapılacak İşler',
+      channelDescription: 'Günlük ciro ve yapılacak iş bildirimleri',
       importance: Importance.high,
       priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
     );
     const ios = DarwinNotificationDetails(
       presentAlert: true,

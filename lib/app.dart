@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'core/notifications/notification_bootstrap.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'features/admin/announcement_screen.dart';
+import 'features/admin/user_management_screen.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
 import 'features/business_overview/business_overview_screen.dart';
@@ -49,6 +51,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/overview',
         builder: (context, state) {
           return const AuthGate(child: BusinessOverviewScreen());
+        },
+      ),
+      GoRoute(
+        path: '/admin/users',
+        builder: (context, state) {
+          return const AuthGate(child: UserManagementScreen());
+        },
+      ),
+      GoRoute(
+        path: '/admin/announcements',
+        builder: (context, state) {
+          return const AuthGate(child: AnnouncementScreen());
         },
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),

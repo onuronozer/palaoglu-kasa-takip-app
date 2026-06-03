@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/models/announcement_model.dart';
 import '../../data/models/reminder_model.dart';
 
 final localNotificationServiceProvider = Provider<LocalNotificationService>((
@@ -28,4 +29,6 @@ class LocalNotificationService {
   Future<void> rescheduleActiveReminders(List<ReminderModel> reminders) async {}
 
   Future<void> showTestNotification() async {}
+
+  Future<void> showAnnouncement(AnnouncementModel announcement) async {}
 }

@@ -23,6 +23,26 @@ class AppUser {
 
   String get roleLabel => isAdmin ? 'Yönetici' : 'Kullanıcı';
 
+  AppUser copyWith({
+    String? uid,
+    String? email,
+    String? displayName,
+    String? role,
+    bool? active,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return AppUser(
+      uid: uid ?? this.uid,
+      email: email ?? this.email,
+      displayName: displayName ?? this.displayName,
+      role: role ?? this.role,
+      active: active ?? this.active,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   factory AppUser.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
     return AppUser(
@@ -47,6 +67,17 @@ class AppUser {
       'active': active,
       if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
+    };
+  }
+
+  Map<String, dynamic> toUpdateMap() {
+    return {
+      'uid': uid,
+      'email': email,
+      'displayName': displayName,
+      'role': role,
+      'active': active,
+      'updatedAt': FieldValue.serverTimestamp(),
     };
   }
 

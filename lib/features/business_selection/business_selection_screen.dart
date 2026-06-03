@@ -72,7 +72,6 @@ class BusinessSelectionScreen extends ConsumerWidget {
                   const SizedBox(height: 28),
                   _BusinessCard(
                     title: 'Palaoğlu Kıraathanesi',
-                    subtitle: 'Kasa, ciro, masraf, işçi, banka ve rapor takibi',
                     icon: Icons.point_of_sale_outlined,
                     color: AppColors.primary,
                     onTap: () => context.go('/kiraathane'),
@@ -80,17 +79,21 @@ class BusinessSelectionScreen extends ConsumerWidget {
                   const SizedBox(height: 14),
                   _BusinessCard(
                     title: 'Palaoğlu Tarım',
-                    subtitle:
-                        'Kayısı, elma, tüccar cari, satış, tahsilat, işçi ve gider takibi',
                     icon: Icons.agriculture_outlined,
                     color: AppColors.turquoise,
                     onTap: () => context.go('/farm'),
+                  ),
+                  const SizedBox(height: 14),
+                  _BusinessCard(
+                    title: 'Yapılacak İşler',
+                    icon: Icons.task_alt_outlined,
+                    color: AppColors.debt,
+                    onTap: () => context.go('/reminders'),
                   ),
                   if (user?.isAdmin == true) ...[
                     const SizedBox(height: 14),
                     _BusinessCard(
                       title: 'Tüm İşletmelerim',
-                      subtitle: 'Kıraathane ve tarım için kısa yönetici özeti',
                       icon: Icons.dashboard_customize_outlined,
                       color: AppColors.bank,
                       onTap: () => context.go('/overview'),
@@ -109,14 +112,12 @@ class BusinessSelectionScreen extends ConsumerWidget {
 class _BusinessCard extends StatelessWidget {
   const _BusinessCard({
     required this.title,
-    required this.subtitle,
     required this.icon,
     required this.color,
     required this.onTap,
   });
 
   final String title;
-  final String subtitle;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
@@ -155,26 +156,13 @@ class _BusinessCard extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: AppColors.text,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 17,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: AppColors.mutedText,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 17,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),

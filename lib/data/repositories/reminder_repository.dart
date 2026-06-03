@@ -1,83 +1,32 @@
-import 'dart:convert';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/notifications/local_notification_service.dart';
+import '../models/app_user.dart';
 import '../models/reminder_model.dart';
 
 final reminderRepositoryProvider = Provider<ReminderRepository>((ref) {
-  return ReminderRepository();
+  return ReminderRepository(FirebaseFirestore.instance);
 });
 
-final reminderControllerProvider =
-    StateNotifierProvider<ReminderController, AsyncValue<List<ReminderModel>>>((
-  ref,
-) {
-  return ReminderController(
-    repository: ref.watch(reminderRepositoryProvider),
-    notifications: ref.watch(localNotificationServiceProvider),
-  );
+final remindersProvider = StreamProvider<List<ReminderModel>>((ref) {
+  return ref.watch(reminderRepositoryProvider).watchReminders();
 });
 
 class ReminderRepository {
-  static const _storageKey = 'palaoglu_manual_reminders_v1';
+  ReminderRepository(this._firestore);
 
-  Future<List<ReminderModel>> loadReminders() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_storageKey);
-    if (raw == null || raw.trim().isEmpty) {
-      return const [];
-    }
+  final FirebaseFirestore _firestore;
 
-    final decoded = jsonDecode(raw);
-    if (decoded is! List) {
-      return const [];
-    }
+  CollectionReference<Map<String, dynamic>> get _reminders =>
+      _firestore.collection('hatirlatmalar');
 
-    return decoded
-        .whereType<Map<String, dynamic>>()
-        .map(ReminderModel.fromJson)
-        .toList()
-      ..sort(_sortReminders);
-  }
-
-  Future<void> saveReminders(List<ReminderModel> reminders) async {
-    final prefs = await SharedPreferences.getInstance();
-    final sorted = reminders.toList()..sort(_sortReminders);
-    await prefs.setString(
-      _storageKey,
-      jsonEncode(sorted.map((reminder) => reminder.toJson()).toList()),
-    );
-  }
-
-  int _sortReminders(ReminderModel a, ReminderModel b) {
-    if (a.active != b.active) {
-      return a.active ? -1 : 1;
-    }
-    return a.scheduledAt.compareTo(b.scheduledAt);
-  }
-}
-
-class ReminderController
-    extends StateNotifier<AsyncValue<List<ReminderModel>>> {
-  ReminderController({required this.repository, required this.notifications})
-      : super(const AsyncValue.loading()) {
-    load();
-  }
-
-  final ReminderRepository repository;
-  final LocalNotificationService notifications;
-
-  Future<void> load() async {
-    try {
-      final reminders = await repository.loadReminders();
-      state = AsyncValue.data(reminders);
-      await notifications.rescheduleActiveReminders(reminders);
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
-    }
+  Stream<List<ReminderModel>> watchReminders() {
+    return _reminders.snapshots().map((snapshot) {
+      final items = snapshot.docs.map(ReminderModel.fromDoc).toList();
+      items.sort(_sortReminders);
+      return items;
+    });
   }
 
   Future<void> addReminder({
@@ -85,51 +34,42 @@ class ReminderController
     required String note,
     required DateTime scheduledAt,
     required String repeat,
+    required AppUser createdBy,
   }) async {
-    final current = state.valueOrNull ?? await repository.loadReminders();
+    final id = const Uuid().v4();
     final reminder = ReminderModel(
-      id: const Uuid().v4(),
+      id: id,
       title: title.trim(),
       note: note.trim(),
       scheduledAt: scheduledAt,
       repeat: repeat,
       active: true,
+      createdByUid: createdBy.uid,
+      createdByName: createdBy.displayName,
       createdAt: DateTime.now(),
     );
-    final updated = [...current, reminder]..sort(repository._sortReminders);
-    await repository.saveReminders(updated);
-    state = AsyncValue.data(updated);
-    await notifications.scheduleReminder(reminder);
+    await _reminders.doc(id).set(reminder.toCreateMap());
   }
 
-  Future<void> toggleReminder(ReminderModel reminder, bool active) async {
-    final current = state.valueOrNull ?? await repository.loadReminders();
-    final updated = [
-      for (final item in current)
-        if (item.id == reminder.id) item.copyWith(active: active) else item,
-    ]..sort(repository._sortReminders);
-    await repository.saveReminders(updated);
-    state = AsyncValue.data(updated);
+  Future<void> updateReminder(ReminderModel reminder) async {
+    await _reminders.doc(reminder.id).update(reminder.toUpdateMap());
+  }
 
-    final changed = updated.firstWhere((item) => item.id == reminder.id);
-    if (active) {
-      await notifications.scheduleReminder(changed);
-    } else {
-      await notifications.cancelReminder(changed);
+  Future<void> setReminderActive({
+    required ReminderModel reminder,
+    required bool active,
+  }) async {
+    await updateReminder(reminder.copyWith(active: active));
+  }
+
+  Future<void> deleteReminder(String id) async {
+    await _reminders.doc(id).delete();
+  }
+
+  int _sortReminders(ReminderModel a, ReminderModel b) {
+    if (a.active != b.active) {
+      return a.active ? -1 : 1;
     }
-  }
-
-  Future<void> deleteReminder(ReminderModel reminder) async {
-    final current = state.valueOrNull ?? await repository.loadReminders();
-    final updated = current.where((item) => item.id != reminder.id).toList()
-      ..sort(repository._sortReminders);
-    await repository.saveReminders(updated);
-    state = AsyncValue.data(updated);
-    await notifications.cancelReminder(reminder);
-  }
-
-  Future<void> rescheduleActiveReminders() async {
-    final current = state.valueOrNull ?? await repository.loadReminders();
-    await notifications.rescheduleActiveReminders(current);
+    return a.scheduledAt.compareTo(b.scheduledAt);
   }
 }

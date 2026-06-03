@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ReminderRepeat {
   const ReminderRepeat._();
 
@@ -25,7 +27,10 @@ class ReminderModel {
     required this.scheduledAt,
     required this.repeat,
     required this.active,
+    required this.createdByUid,
+    required this.createdByName,
     required this.createdAt,
+    this.updatedAt,
   });
 
   final String id;
@@ -34,7 +39,10 @@ class ReminderModel {
   final DateTime scheduledAt;
   final String repeat;
   final bool active;
+  final String createdByUid;
+  final String createdByName;
   final DateTime createdAt;
+  final DateTime? updatedAt;
 
   int get notificationId => _notificationIdFromId(id);
 
@@ -50,7 +58,10 @@ class ReminderModel {
     DateTime? scheduledAt,
     String? repeat,
     bool? active,
+    String? createdByUid,
+    String? createdByName,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return ReminderModel(
       id: id ?? this.id,
@@ -59,36 +70,71 @@ class ReminderModel {
       scheduledAt: scheduledAt ?? this.scheduledAt,
       repeat: repeat ?? this.repeat,
       active: active ?? this.active,
+      createdByUid: createdByUid ?? this.createdByUid,
+      createdByName: createdByName ?? this.createdByName,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  factory ReminderModel.fromJson(Map<String, dynamic> json) {
+  factory ReminderModel.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data() ?? {};
     return ReminderModel(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      note: json['note'] as String? ?? '',
-      scheduledAt: DateTime.tryParse(json['scheduledAt'] as String? ?? '') ??
-          DateTime.now(),
-      repeat: ReminderRepeat.all.contains(json['repeat'])
-          ? json['repeat'] as String
+      id: doc.id,
+      title: data['baslik'] as String? ?? '',
+      note: data['not'] as String? ?? '',
+      scheduledAt: _dateFromFirestore(data['scheduledAt']) ?? DateTime.now(),
+      repeat: ReminderRepeat.all.contains(data['repeat'])
+          ? data['repeat'] as String
           : ReminderRepeat.none,
-      active: json['active'] as bool? ?? true,
-      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
-          DateTime.now(),
+      active: data['active'] as bool? ?? true,
+      createdByUid: data['createdByUid'] as String? ?? '',
+      createdByName: data['createdByName'] as String? ?? '',
+      createdAt: _dateFromFirestore(data['createdAt']) ?? DateTime.now(),
+      updatedAt: _dateFromFirestore(data['updatedAt']),
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toCreateMap() {
     return {
       'id': id,
-      'title': title,
-      'note': note,
-      'scheduledAt': scheduledAt.toIso8601String(),
+      'baslik': title,
+      'not': note,
+      'scheduledAt': Timestamp.fromDate(scheduledAt),
       'repeat': repeat,
       'active': active,
-      'createdAt': createdAt.toIso8601String(),
+      'createdByUid': createdByUid,
+      'createdByName': createdByName,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     };
+  }
+
+  Map<String, dynamic> toUpdateMap() {
+    return {
+      'id': id,
+      'baslik': title,
+      'not': note,
+      'scheduledAt': Timestamp.fromDate(scheduledAt),
+      'repeat': repeat,
+      'active': active,
+      'createdByUid': createdByUid,
+      'createdByName': createdByName,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  static DateTime? _dateFromFirestore(Object? value) {
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+    if (value is DateTime) {
+      return value;
+    }
+    if (value is String) {
+      return DateTime.tryParse(value);
+    }
+    return null;
   }
 
   static int _notificationIdFromId(String id) {

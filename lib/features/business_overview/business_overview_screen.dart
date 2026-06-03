@@ -41,7 +41,7 @@ class BusinessOverviewScreen extends ConsumerWidget {
           child: _StateCard(
             icon: Icons.lock_outline,
             title: 'Yönetici yetkisi gerekli',
-            message: 'Bu ekranı sadece yöneticiler görebilir.',
+            message: 'Giriş yetkisi yok.',
           ),
         ),
       );
@@ -158,9 +158,9 @@ class BusinessOverviewScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Hatırlatmalar',
+            tooltip: 'Yapılacak İşler',
             onPressed: () => context.push('/reminders'),
-            icon: const Icon(Icons.notifications_active_outlined),
+            icon: const Icon(Icons.task_alt_outlined),
           ),
         ],
       ),
@@ -246,8 +246,27 @@ class BusinessOverviewScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _ReminderShortcutCard(
-                    onTap: () => context.push('/reminders'),
+                  _AdminActionGrid(
+                    actions: [
+                      _AdminAction(
+                        title: 'Yapılacak İşler',
+                        icon: Icons.task_alt_outlined,
+                        color: AppColors.debt,
+                        onTap: () => context.push('/reminders'),
+                      ),
+                      _AdminAction(
+                        title: 'Duyuru Gönder',
+                        icon: Icons.campaign_outlined,
+                        color: AppColors.warning,
+                        onTap: () => context.push('/admin/announcements'),
+                      ),
+                      _AdminAction(
+                        title: 'Kullanıcı Yönetimi',
+                        icon: Icons.manage_accounts_outlined,
+                        color: AppColors.bank,
+                        onTap: () => context.push('/admin/users'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -289,19 +308,9 @@ class _OverviewHeader extends StatelessWidget {
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Genel Yönetim',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  loading ? 'Veriler yenileniyor' : 'İşletmelerin kısa özeti',
-                  style: const TextStyle(color: AppColors.mutedText),
-                ),
-              ],
+            child: Text(
+              'Genel Yönetim',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
           if (loading)
@@ -403,68 +412,84 @@ class _MetricGrid extends StatelessWidget {
   }
 }
 
-class _ReminderShortcutCard extends StatelessWidget {
-  const _ReminderShortcutCard({required this.onTap});
+class _AdminAction {
+  const _AdminAction({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
+  final String title;
+  final IconData icon;
+  final Color color;
   final VoidCallback onTap;
+}
+
+class _AdminActionGrid extends StatelessWidget {
+  const _AdminActionGrid({required this.actions});
+
+  final List<_AdminAction> actions;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(22),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.border),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 620 ? 3 : 1;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: actions.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            mainAxisExtent: 92,
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.bank.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.notifications_active_outlined,
-                  color: AppColors.bank,
+          itemBuilder: (context, index) {
+            final action = actions[index];
+            return Material(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(22),
+              child: InkWell(
+                onTap: action.onTap,
+                borderRadius: BorderRadius.circular(22),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: action.color.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Icon(action.icon, color: action.color),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          action.title,
+                          style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: action.color),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hatırlatmalar',
-                      style: TextStyle(
-                        color: AppColors.text,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Günlük 12:00 uyarısı ve özel ödeme/toplantı notları',
-                      style: TextStyle(
-                        color: AppColors.mutedText,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: AppColors.bank),
-            ],
-          ),
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }
