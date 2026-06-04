@@ -75,9 +75,9 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
     );
     final loading =
         workersState.isLoading && workersState.valueOrNull == null ||
-        fieldsState.isLoading && fieldsState.valueOrNull == null ||
-        worksState.isLoading && worksState.valueOrNull == null ||
-        paymentsState.isLoading && paymentsState.valueOrNull == null;
+            fieldsState.isLoading && fieldsState.valueOrNull == null ||
+            worksState.isLoading && worksState.valueOrNull == null ||
+            paymentsState.isLoading && paymentsState.valueOrNull == null;
 
     return Scaffold(
       appBar: AppBar(
@@ -134,8 +134,8 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
                       setState(() {
                         _workWorkerId = workerId;
                         if (worker != null) {
-                          _workDailyWageController.text = worker.dailyWage
-                              .toStringAsFixed(0);
+                          _workDailyWageController.text =
+                              worker.dailyWage.toStringAsFixed(0);
                         }
                       });
                     },
@@ -244,9 +244,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .addFarmWorkerWork(
+      await ref.read(farmRepositoryProvider).addFarmWorkerWork(
             FarmWorkerWorkModel(
               id: '',
               workerId: _workWorkerId!,
@@ -286,9 +284,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .addFarmWorkerPayment(
+      await ref.read(farmRepositoryProvider).addFarmWorkerPayment(
             FarmWorkerPaymentModel(
               id: '',
               workerId: _paymentWorkerId!,
@@ -380,9 +376,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .updateFarmWorker(
+      await ref.read(farmRepositoryProvider).updateFarmWorker(
             worker.copyWith(fullName: result.name, dailyWage: result.dailyWage),
           );
       _showSnack('İşçi güncellendi.');
@@ -399,8 +393,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
     final nextActive = !worker.active;
     var confirmed = true;
     if (!nextActive) {
-      confirmed =
-          await showDialog<bool>(
+      confirmed = await showDialog<bool>(
             context: context,
             builder: (context) {
               return AlertDialog(
@@ -584,9 +577,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .updateFarmWorkerWork(
+      await ref.read(farmRepositoryProvider).updateFarmWorkerWork(
             work.copyWith(
               workerId: result.workerId,
               date: result.date,
@@ -721,9 +712,7 @@ class _FarmWorkerScreenState extends ConsumerState<FarmWorkerScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .updateFarmWorkerPayment(
+      await ref.read(farmRepositoryProvider).updateFarmWorkerPayment(
             payment.copyWith(
               workerId: result.workerId,
               date: result.date,
@@ -1154,9 +1143,8 @@ class _WorkerSummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final remainingLabel = summary.isOverPaid ? 'Fazla ödeme' : 'Alacak';
-    final remainingAmount = summary.isOverPaid
-        ? summary.overPaid
-        : summary.remaining;
+    final remainingAmount =
+        summary.isOverPaid ? summary.overPaid : summary.remaining;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1244,14 +1232,12 @@ class _WorkerHistoryCard extends StatelessWidget {
     FarmWorkerWorkModel work,
     List<FarmWorkerModel> workers,
     List<FarmFieldModel> fields,
-  )
-  onEditWork;
+  ) onEditWork;
   final ValueChanged<FarmWorkerWorkModel> onDeleteWork;
   final void Function(
     FarmWorkerPaymentModel payment,
     List<FarmWorkerModel> workers,
-  )
-  onEditPayment;
+  ) onEditPayment;
   final ValueChanged<FarmWorkerPaymentModel> onDeletePayment;
 
   @override
@@ -1317,23 +1303,20 @@ class _WorkerMovementTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isWork = movement.work != null;
-    final title = isWork
-        ? '${_formatNumber(movement.work!.dayCount)} gün'
-        : 'Ödeme';
-    final description = isWork
-        ? movement.work!.description
-        : movement.payment!.description;
+    final title =
+        isWork ? '${_formatNumber(movement.work!.dayCount)} gün' : 'Ödeme';
+    final description =
+        isWork ? movement.work!.description : movement.payment!.description;
     final workLocation = fieldName.trim().isEmpty ? 'Genel' : fieldName;
     final subtitle = description.trim().isEmpty
         ? isWork
-              ? '${movement.date} • $workerName • $workLocation'
-              : '${movement.date} • $workerName'
+            ? '${movement.date} • $workerName • $workLocation'
+            : '${movement.date} • $workerName'
         : isWork
-        ? '${movement.date} • $workerName • $workLocation • $description'
-        : '${movement.date} • $workerName • $description';
-    final amount = isWork
-        ? movement.work!.totalEarned
-        : movement.payment!.amount;
+            ? '${movement.date} • $workerName • $workLocation • $description'
+            : '${movement.date} • $workerName • $description';
+    final amount =
+        isWork ? movement.work!.totalEarned : movement.payment!.amount;
     final color = isWork ? AppColors.expense : AppColors.primary;
 
     return Container(
@@ -1382,9 +1365,8 @@ class _WorkerMovementTile extends StatelessWidget {
           ),
           IconButton(
             tooltip: 'Sil',
-            onPressed: isSaving
-                ? null
-                : (isWork ? onDeleteWork : onDeletePayment),
+            onPressed:
+                isSaving ? null : (isWork ? onDeleteWork : onDeletePayment),
             icon: const Icon(Icons.delete_outline, color: AppColors.expense),
           ),
         ],
@@ -1451,9 +1433,8 @@ class _WorkerDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final value = workers.any((worker) => worker.id == selectedId)
-        ? selectedId
-        : null;
+    final value =
+        workers.any((worker) => worker.id == selectedId) ? selectedId : null;
     return DropdownButtonFormField<String>(
       value: value,
       decoration: const InputDecoration(
@@ -1489,9 +1470,8 @@ class _FieldDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final value = fields.any((field) => field.id == selectedId)
-        ? selectedId
-        : '';
+    final value =
+        fields.any((field) => field.id == selectedId) ? selectedId : '';
     return DropdownButtonFormField<String>(
       value: value,
       decoration: const InputDecoration(

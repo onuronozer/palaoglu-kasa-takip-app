@@ -108,13 +108,12 @@ class _EmployeeSettingsScreenState
   }
 
   Future<void> _addEmployee(AppUser appUser) async {
-    final success = await ref
-        .read(employeeControllerProvider.notifier)
-        .addEmployee(
-          name: _nameController.text,
-          salaryText: _salaryController.text,
-          updatedBy: appUser,
-        );
+    final success =
+        await ref.read(employeeControllerProvider.notifier).addEmployee(
+              name: _nameController.text,
+              salaryText: _salaryController.text,
+              updatedBy: appUser,
+            );
     if (!mounted) {
       return;
     }
@@ -329,16 +328,14 @@ class _EmployeeTile extends ConsumerWidget {
             runSpacing: 10,
             children: [
               OutlinedButton.icon(
-                onPressed: isLoading
-                    ? null
-                    : () => _showSalaryDialog(context, ref),
+                onPressed:
+                    isLoading ? null : () => _showSalaryDialog(context, ref),
                 icon: const Icon(Icons.edit_outlined, size: 18),
                 label: const Text('Maaş güncelle'),
               ),
               OutlinedButton.icon(
-                onPressed: isLoading
-                    ? null
-                    : () => _confirmActiveChange(context, ref),
+                onPressed:
+                    isLoading ? null : () => _confirmActiveChange(context, ref),
                 icon: Icon(
                   employee.active
                       ? Icons.person_remove_outlined
@@ -359,8 +356,7 @@ class _EmployeeTile extends ConsumerWidget {
     var confirmed = true;
 
     if (!nextActive) {
-      confirmed =
-          await showDialog<bool>(
+      confirmed = await showDialog<bool>(
             context: context,
             builder: (context) {
               return AlertDialog(
@@ -401,8 +397,8 @@ class _EmployeeTile extends ConsumerWidget {
         content: Text(
           success
               ? nextActive
-                    ? 'Personel tekrar aktif edildi.'
-                    : 'Personel pasife alındı. Eski kayıtlar korunur.'
+                  ? 'Personel tekrar aktif edildi.'
+                  : 'Personel pasife alındı. Eski kayıtlar korunur.'
               : 'Personel durumu güncellenemedi.',
         ),
       ),
@@ -448,13 +444,12 @@ class _EmployeeTile extends ConsumerWidget {
       return;
     }
 
-    final success = await ref
-        .read(employeeControllerProvider.notifier)
-        .updateSalary(
-          employee: employee,
-          salaryText: salaryText,
-          updatedBy: appUser,
-        );
+    final success =
+        await ref.read(employeeControllerProvider.notifier).updateSalary(
+              employee: employee,
+              salaryText: salaryText,
+              updatedBy: appUser,
+            );
     if (!context.mounted) {
       return;
     }

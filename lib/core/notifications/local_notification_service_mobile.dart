@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,8 +21,11 @@ class LocalNotificationService {
 
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
+  static final StreamController<String> _payloadController =
+      StreamController<String>.broadcast();
   static bool _initialized = false;
   static bool _timezoneReady = false;
+  static bool _launchPayloadHandled = false;
 
   static const int dailyReminderId = 1200;
   static const String _scheduledReminderIdsKey =
@@ -29,6 +34,8 @@ class LocalNotificationService {
   bool get isSupported =>
       defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
+
+  Stream<String> get notificationPayloads => _payloadController.stream;
 
   Future<bool> initialize() async {
     if (!isSupported) {
@@ -46,7 +53,19 @@ class LocalNotificationService {
       requestSoundPermission: false,
     );
     const settings = InitializationSettings(android: android, iOS: ios);
-    await _plugin.initialize(settings);
+    await _plugin.initialize(
+      settings,
+      onDidReceiveNotificationResponse: (response) {
+        _emitPayload(response.payload);
+      },
+    );
+    if (!_launchPayloadHandled) {
+      _launchPayloadHandled = true;
+      final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+      if (launchDetails?.didNotificationLaunchApp ?? false) {
+        _emitPayload(launchDetails?.notificationResponse?.payload);
+      }
+    }
     _initialized = true;
     return true;
   }
@@ -273,5 +292,12 @@ class LocalNotificationService {
     tz_data.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Europe/Istanbul'));
     _timezoneReady = true;
+  }
+
+  void _emitPayload(String? payload) {
+    if (payload == null || payload.isEmpty) {
+      return;
+    }
+    _payloadController.add(payload);
   }
 }

@@ -145,9 +145,7 @@ class _FarmPaymentScreenState extends ConsumerState<FarmPaymentScreen> {
     }
 
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .addPayment(
+      await ref.read(farmRepositoryProvider).addPayment(
             FarmPaymentModel(
               id: '',
               merchantId: _merchantId!,

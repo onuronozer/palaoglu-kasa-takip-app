@@ -12,11 +12,10 @@ class ExpenseDetailTableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expenses =
-        transactions
-            .where((transaction) => transaction.type == TransactionTypes.masraf)
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
+    final expenses = transactions
+        .where((transaction) => transaction.type == TransactionTypes.masraf)
+        .toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -107,9 +106,8 @@ class _ExpenseLine extends StatelessWidget {
             style: TextStyle(
               color: description.isEmpty ? AppColors.mutedText : AppColors.text,
               fontSize: 12,
-              fontWeight: description.isEmpty
-                  ? FontWeight.w500
-                  : FontWeight.w700,
+              fontWeight:
+                  description.isEmpty ? FontWeight.w500 : FontWeight.w700,
             ),
           ),
           const SizedBox(height: 8),

@@ -33,6 +33,12 @@ target 'Runner' do
   target 'RunnerTests' do
     inherit! :search_paths
   end
+
+  # ShareExtension target with minimal dependencies
+  target 'ShareExtension' do
+    inherit! :search_paths
+    # Don't inherit full dependencies to avoid bundle conflicts
+  end
 end
 
 post_install do |installer|

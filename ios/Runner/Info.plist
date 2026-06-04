@@ -18,6 +18,17 @@
 	<string>palaoglu_kasa_takip</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.palaoglu.kasatakip</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>SharingMedia-com.palaoglu.kasatakip</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
@@ -28,6 +39,8 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>AI fis ve kredi karti gorsellerini okumak icin fotograf secimi kullanilir.</string>
+	<key>AppGroupId</key>
+	<string>group.com.palaoglu.kasatakip</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

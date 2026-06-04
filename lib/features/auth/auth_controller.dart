@@ -19,8 +19,8 @@ final currentAppUserProvider = StreamProvider<AppUser?>((ref) {
 
 final authControllerProvider =
     StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
-      return AuthController(ref.watch(authRepositoryProvider));
-    });
+  return AuthController(ref.watch(authRepositoryProvider));
+});
 
 class AuthController extends StateNotifier<AsyncValue<void>> {
   AuthController(this._repository) : super(const AsyncData(null));

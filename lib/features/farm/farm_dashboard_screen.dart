@@ -116,9 +116,9 @@ class FarmDashboardScreen extends ConsumerWidget {
                   FarmSeasonSelector(
                     selectedSeason: selectedSeason,
                     availableSeasons: availableSeasons,
-                    onChanged: (season) =>
-                        ref.read(selectedFarmSeasonProvider.notifier).state =
-                            season,
+                    onChanged: (season) => ref
+                        .read(selectedFarmSeasonProvider.notifier)
+                        .state = season,
                   ),
                   const SizedBox(height: 16),
                   GridView(
@@ -126,11 +126,11 @@ class FarmDashboardScreen extends ConsumerWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          mainAxisExtent: 132,
-                        ),
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 132,
+                    ),
                     children: [
                       MetricCard(
                         title: 'Toplam Satış',
@@ -356,9 +356,8 @@ class _MerchantBalanceCard extends StatelessWidget {
                 for (final merchant in shown)
                   _InfoLine(
                     title: merchant.fullName,
-                    subtitle: merchant.phone.isEmpty
-                        ? 'Telefon yok'
-                        : merchant.phone,
+                    subtitle:
+                        merchant.phone.isEmpty ? 'Telefon yok' : merchant.phone,
                     amount: MoneyUtils.format(balances[merchant.id] ?? 0),
                     color: (balances[merchant.id] ?? 0) >= 0
                         ? AppColors.debt

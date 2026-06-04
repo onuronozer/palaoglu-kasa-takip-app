@@ -52,8 +52,8 @@ class _EmployeeSalaryLine extends StatelessWidget {
     final color = employee.isOverPaid
         ? AppColors.warning
         : employee.isComplete
-        ? AppColors.income
-        : AppColors.turquoise;
+            ? AppColors.income
+            : AppColors.turquoise;
     final progress = employee.salary <= 0
         ? (employee.paid > 0 ? 1.0 : 0.0)
         : math.min(employee.paid / employee.salary, 1.0);
@@ -153,9 +153,8 @@ class _EmployeeSalaryLine extends StatelessWidget {
                 _SmallInfo(
                   label: 'Kalan',
                   value: MoneyUtils.format(employee.remaining),
-                  color: employee.isComplete
-                      ? AppColors.income
-                      : AppColors.text,
+                  color:
+                      employee.isComplete ? AppColors.income : AppColors.text,
                 ),
             ],
           ),

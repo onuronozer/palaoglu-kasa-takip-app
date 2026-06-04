@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/models/announcement_model.dart';
 import '../../data/repositories/announcement_repository.dart';
 import '../../data/repositories/reminder_repository.dart';
+import '../utils/date_utils.dart';
 import 'local_notification_service.dart';
 
 class NotificationBootstrap extends ConsumerStatefulWidget {
@@ -20,10 +24,15 @@ class _NotificationBootstrapState extends ConsumerState<NotificationBootstrap> {
   static bool _started = false;
   static bool _announcementsPrimed = false;
   static Set<String> _knownAnnouncementIds = {};
+  StreamSubscription<String>? _notificationTapSubscription;
 
   @override
   void initState() {
     super.initState();
+    _notificationTapSubscription = ref
+        .read(localNotificationServiceProvider)
+        .notificationPayloads
+        .listen(_handleNotificationPayload);
     if (_started) {
       return;
     }
@@ -31,6 +40,12 @@ class _NotificationBootstrapState extends ConsumerState<NotificationBootstrap> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _prepareNotifications();
     });
+  }
+
+  @override
+  void dispose() {
+    _notificationTapSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _prepareNotifications() async {
@@ -98,6 +113,29 @@ class _NotificationBootstrapState extends ConsumerState<NotificationBootstrap> {
 
     for (final item in newItems) {
       await ref.read(localNotificationServiceProvider).showAnnouncement(item);
+    }
+  }
+
+  void _handleNotificationPayload(String payload) {
+    if (!mounted) {
+      return;
+    }
+
+    final monthKey = AppDateUtils.monthKey(DateTime.now());
+    if (payload == 'daily_kiraathane_reminder') {
+      context.go('/entry/ciro?month=$monthKey');
+      return;
+    }
+    if (payload.startsWith('manual_reminder:')) {
+      context.go('/reminders');
+      return;
+    }
+    if (payload.startsWith('announcement:')) {
+      context.go('/reminders');
+      return;
+    }
+    if (payload == 'test_notification') {
+      context.go('/');
     }
   }
 }

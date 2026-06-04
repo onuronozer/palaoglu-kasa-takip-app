@@ -77,15 +77,13 @@ class _EditTransactionFormState extends ConsumerState<_EditTransactionForm> {
     _selectedDate = AppDateUtils.dateFromKey(transaction.date);
     _type = transaction.type;
     _category = transaction.category;
-    _employee = transaction.type == TransactionTypes.isci
-        ? transaction.person
-        : null;
+    _employee =
+        transaction.type == TransactionTypes.isci ? transaction.person : null;
     _paymentSource = transaction.paymentSource;
     _amountController.text = transaction.amount.toStringAsFixed(0);
     _descriptionController.text = transaction.description;
-    _personController.text = transaction.type == TransactionTypes.borc
-        ? transaction.person
-        : '';
+    _personController.text =
+        transaction.type == TransactionTypes.borc ? transaction.person : '';
   }
 
   @override

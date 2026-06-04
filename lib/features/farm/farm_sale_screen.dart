@@ -50,10 +50,10 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
     final apricotOptions = varietyDocs == null || varietyDocs.isEmpty
         ? ApricotVarieties.all
         : varietyDocs
-              .where((variety) => variety.active)
-              .map((variety) => variety.name)
-              .where((name) => name.trim().isNotEmpty)
-              .toList();
+            .where((variety) => variety.active)
+            .map((variety) => variety.name)
+            .where((name) => name.trim().isNotEmpty)
+            .toList();
     final selectedVariety = apricotOptions.contains(_variety) ? _variety : null;
     final kg = MoneyUtils.parse(_kgController.text);
     final price = MoneyUtils.parse(_priceController.text);
@@ -128,8 +128,8 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
                         _product = value;
                         _variety = value == FarmProducts.kayisi
                             ? apricotOptions.isEmpty
-                                  ? null
-                                  : apricotOptions.first
+                                ? null
+                                : apricotOptions.first
                             : null;
                       });
                     },
@@ -227,17 +227,14 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
     }
 
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .addSale(
+      await ref.read(farmRepositoryProvider).addSale(
             FarmSaleModel(
               id: '',
               merchantId: _merchantId!,
               date: AppDateUtils.dateKey(_selectedDate),
               productName: _product,
-              productVariety: _product == FarmProducts.kayisi
-                  ? _variety ?? ''
-                  : '',
+              productVariety:
+                  _product == FarmProducts.kayisi ? _variety ?? '' : '',
               amountKg: kg,
               priceTl: price,
               totalAmount: kg * price,
@@ -272,9 +269,8 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
     var selectedDate = AppDateUtils.dateFromKey(sale.date);
     var merchantId = sale.merchantId;
     var fieldId = sale.fieldId;
-    var product = sale.productName.isEmpty
-        ? FarmProducts.kayisi
-        : sale.productName;
+    var product =
+        sale.productName.isEmpty ? FarmProducts.kayisi : sale.productName;
     var variety = sale.productVariety;
     final kgController = TextEditingController(
       text: _formatNumber(sale.amountKg),
@@ -289,9 +285,8 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final apricotOptions = _activeApricotOptions();
-            final selectedVariety = apricotOptions.contains(variety)
-                ? variety
-                : null;
+            final selectedVariety =
+                apricotOptions.contains(variety) ? variety : null;
             return AlertDialog(
               backgroundColor: AppColors.surface,
               title: const Text('Satışı Düzenle'),
@@ -336,8 +331,8 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
                             product = value;
                             variety = value == FarmProducts.kayisi
                                 ? apricotOptions.isEmpty
-                                      ? ''
-                                      : apricotOptions.first
+                                    ? ''
+                                    : apricotOptions.first
                                 : '';
                           });
                         },
@@ -391,9 +386,8 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
                         merchantId: merchantId,
                         date: AppDateUtils.dateKey(selectedDate),
                         productName: product,
-                        productVariety: product == FarmProducts.kayisi
-                            ? variety
-                            : '',
+                        productVariety:
+                            product == FarmProducts.kayisi ? variety : '',
                         amountKg: kg,
                         priceTl: price,
                         totalAmount: kg * price,

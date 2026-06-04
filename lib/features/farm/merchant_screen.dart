@@ -156,9 +156,7 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .updateMerchant(
+      await ref.read(farmRepositoryProvider).updateMerchant(
             merchant.copyWith(fullName: result.fullName, phone: result.phone),
           );
       _showSnack('Tüccar güncellendi.');
@@ -172,8 +170,7 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
   }
 
   Future<void> _confirmDeleteMerchant(MerchantModel merchant) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) {
             return AlertDialog(

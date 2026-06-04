@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/notifications/notification_bootstrap.dart';
+import 'core/share/share_intent_bootstrap.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'features/admin/announcement_screen.dart';
@@ -300,7 +301,9 @@ class AuthGate extends ConsumerWidget {
               );
             }
 
-            return NotificationBootstrap(child: child);
+            return ShareIntentBootstrap(
+              child: NotificationBootstrap(child: child),
+            );
           },
         );
       },

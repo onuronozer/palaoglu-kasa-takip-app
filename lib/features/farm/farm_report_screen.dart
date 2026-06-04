@@ -41,8 +41,8 @@ class FarmReportScreen extends ConsumerWidget {
         workerWorksState.valueOrNull ?? const <FarmWorkerWorkModel>[];
     final workerPayments =
         workerPaymentsState.valueOrNull ?? const <FarmWorkerPaymentModel>[];
-    final loading =
-        merchantsState.isLoading && merchantsState.valueOrNull == null ||
+    final loading = merchantsState.isLoading &&
+            merchantsState.valueOrNull == null ||
         salesState.isLoading && salesState.valueOrNull == null ||
         paymentsState.isLoading && paymentsState.valueOrNull == null ||
         expensesState.isLoading && expensesState.valueOrNull == null ||
@@ -138,9 +138,9 @@ class FarmReportScreen extends ConsumerWidget {
                   FarmSeasonSelector(
                     selectedSeason: selectedSeason,
                     availableSeasons: availableSeasons,
-                    onChanged: (season) =>
-                        ref.read(selectedFarmSeasonProvider.notifier).state =
-                            season,
+                    onChanged: (season) => ref
+                        .read(selectedFarmSeasonProvider.notifier)
+                        .state = season,
                   ),
                   const SizedBox(height: 16),
                   GridView(
@@ -148,11 +148,11 @@ class FarmReportScreen extends ConsumerWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          mainAxisExtent: 132,
-                        ),
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 132,
+                    ),
                     children: [
                       MetricCard(
                         title: 'Satış Cirosu',
@@ -176,9 +176,8 @@ class FarmReportScreen extends ConsumerWidget {
                         title: 'Net',
                         value: MoneyUtils.format(net),
                         icon: Icons.analytics_outlined,
-                        color: net >= 0
-                            ? AppColors.turquoise
-                            : AppColors.expense,
+                        color:
+                            net >= 0 ? AppColors.turquoise : AppColors.expense,
                       ),
                       MetricCard(
                         title: 'İşçi Hakediş',
@@ -353,9 +352,8 @@ class _BreakdownLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = total <= 0
-        ? 0.0
-        : (line.amount / total).clamp(0, 1).toDouble();
+    final progress =
+        total <= 0 ? 0.0 : (line.amount / total).clamp(0, 1).toDouble();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),

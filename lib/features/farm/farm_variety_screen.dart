@@ -104,9 +104,8 @@ class _FarmVarietyScreenState extends ConsumerState<FarmVarietyScreen> {
       final repository = ref.read(farmRepositoryProvider);
       final current = ref.read(farmApricotVarietiesProvider).valueOrNull ??
           const <FarmApricotVarietyModel>[];
-      final existingNames = current
-          .map((variety) => variety.name.trim().toLowerCase())
-          .toSet();
+      final existingNames =
+          current.map((variety) => variety.name.trim().toLowerCase()).toSet();
       for (final name in ApricotVarieties.all) {
         if (existingNames.contains(name.trim().toLowerCase())) {
           continue;
@@ -192,8 +191,7 @@ class _FarmVarietyScreenState extends ConsumerState<FarmVarietyScreen> {
   }
 
   Future<void> _confirmDelete(FarmApricotVarietyModel variety) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) {
             return AlertDialog(
@@ -267,7 +265,8 @@ class _AddVarietyCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Yeni Kayısı Cinsi', style: Theme.of(context).textTheme.titleLarge),
+          Text('Yeni Kayısı Cinsi',
+              style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 14),
           TextField(
             controller: controller,
@@ -308,9 +307,8 @@ class _VarietyList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final existingNames = varieties
-        .map((variety) => variety.name.trim().toLowerCase())
-        .toSet();
+    final existingNames =
+        varieties.map((variety) => variety.name.trim().toLowerCase()).toSet();
     final hasMissingDefaults = ApricotVarieties.all.any(
       (name) => !existingNames.contains(name.trim().toLowerCase()),
     );
@@ -404,9 +402,8 @@ class _VarietyTile extends StatelessWidget {
                 Text(
                   variety.active ? 'Aktif' : 'Pasif',
                   style: TextStyle(
-                    color: variety.active
-                        ? AppColors.primary
-                        : AppColors.expense,
+                    color:
+                        variety.active ? AppColors.primary : AppColors.expense,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),

@@ -249,8 +249,8 @@ class ReportUtils {
       }
       final category =
           AppCategories.expenseCategories.contains(transaction.category)
-          ? transaction.category
-          : 'Diğer';
+              ? transaction.category
+              : 'Diğer';
       totals[category] = (totals[category] ?? 0) + transaction.amount;
     }
 

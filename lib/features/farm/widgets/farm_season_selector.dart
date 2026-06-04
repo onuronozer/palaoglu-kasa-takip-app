@@ -23,7 +23,8 @@ class FarmSeasonSelector extends StatelessWidget {
       now + 1,
       selectedSeason,
       ...availableSeasons.where((year) => year > 2000),
-    }.toList()..sort((a, b) => b.compareTo(a));
+    }.toList()
+      ..sort((a, b) => b.compareTo(a));
 
     return Container(
       padding: const EdgeInsets.all(14),

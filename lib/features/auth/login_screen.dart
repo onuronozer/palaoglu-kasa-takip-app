@@ -35,9 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    final success = await ref
-        .read(authControllerProvider.notifier)
-        .signIn(
+    final success = await ref.read(authControllerProvider.notifier).signIn(
           email: _emailController.text,
           password: _passwordController.text,
         );

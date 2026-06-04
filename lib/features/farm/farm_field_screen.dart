@@ -101,9 +101,7 @@ class _FarmFieldScreenState extends ConsumerState<FarmFieldScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .addFarmField(
+      await ref.read(farmRepositoryProvider).addFarmField(
             FarmFieldModel(
               id: '',
               name: name,
@@ -268,9 +266,7 @@ class _FarmFieldScreenState extends ConsumerState<FarmFieldScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await ref
-          .read(farmRepositoryProvider)
-          .updateFarmField(
+      await ref.read(farmRepositoryProvider).updateFarmField(
             field.copyWith(
               name: result.name,
               ada: result.ada,
@@ -309,8 +305,7 @@ class _FarmFieldScreenState extends ConsumerState<FarmFieldScreen> {
   }
 
   Future<void> _confirmDelete(FarmFieldModel field) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) {
             return AlertDialog(

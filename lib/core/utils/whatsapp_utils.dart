@@ -48,8 +48,8 @@ class WhatsAppUtils {
       final detail = employee.isOverPaid
           ? 'Fazla ${MoneyUtils.format(employee.overPaid)}'
           : employee.isComplete
-          ? 'Tamamlandı'
-          : 'Kalan ${MoneyUtils.format(employee.remaining)}';
+              ? 'Tamamlandı'
+              : 'Kalan ${MoneyUtils.format(employee.remaining)}';
 
       buffer.writeln(
         '${employee.name}: ${MoneyUtils.format(employee.paid)} / '

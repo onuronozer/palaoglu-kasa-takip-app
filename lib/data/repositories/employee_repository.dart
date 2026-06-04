@@ -17,9 +17,7 @@ final employeesProvider = StreamProvider<List<EmployeeModel>>((ref) {
 final activeEmployeesProvider = Provider<AsyncValue<List<EmployeeModel>>>((
   ref,
 ) {
-  return ref
-      .watch(employeesProvider)
-      .whenData(
+  return ref.watch(employeesProvider).whenData(
         (employees) => employees.where((employee) => employee.active).toList(),
       );
 });

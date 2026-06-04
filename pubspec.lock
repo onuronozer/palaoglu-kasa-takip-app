@@ -536,6 +536,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.6.1"
+  share_intent_package:
+    dependency: "direct main"
+    description:
+      name: share_intent_package
+      sha256: bf9a856b0fdf17b60009755008019556bb29986bc89694f77f9e9bf52a318fa4
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.32"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -782,5 +790,5 @@ packages:
     source: hosted
     version: "6.6.1"
 sdks:
-  dart: ">=3.10.0 <4.0.0"
+  dart: ">=3.10.1 <4.0.0"
   flutter: ">=3.38.0"

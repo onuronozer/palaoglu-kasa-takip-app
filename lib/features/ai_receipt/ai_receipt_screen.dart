@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -9,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/categories.dart';
+import '../../core/share/shared_receipt_image.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/money_utils.dart';
@@ -56,8 +58,10 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
   String _model = _defaultModel;
   String _debtCategory = AppCategories.debtGiven;
   bool _apiSaved = false;
+  bool _apiPanelOpen = true;
   bool _reading = false;
   bool _saving = false;
+  int? _loadedSharedImageId;
 
   @override
   void initState() {
@@ -80,6 +84,21 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<SharedReceiptImage?>(sharedReceiptImageProvider, (
+      previous,
+      next,
+    ) {
+      if (next != null && next.id != previous?.id) {
+        unawaited(_loadSharedImage(next));
+      }
+    });
+    final sharedImage = ref.watch(sharedReceiptImageProvider);
+    if (sharedImage != null && sharedImage.id != _loadedSharedImageId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_loadSharedImage(sharedImage));
+      });
+    }
+
     final appUser = ref.watch(currentAppUserProvider).valueOrNull;
     final employeesState = ref.watch(activeEmployeesProvider);
     final employees = employeesState.valueOrNull ?? const <EmployeeModel>[];
@@ -112,6 +131,10 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
                     apiKeyController: _apiKeyController,
                     model: _model,
                     apiSaved: _apiSaved,
+                    expanded: _apiPanelOpen,
+                    onToggle: () {
+                      setState(() => _apiPanelOpen = !_apiPanelOpen);
+                    },
                     onModelChanged: (value) {
                       if (value != null) {
                         setState(() => _model = value);
@@ -200,6 +223,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
       final savedModel = prefs.getString(_modelPrefsKey) ?? _defaultModel;
       _model = _modelOptions.contains(savedModel) ? savedModel : _defaultModel;
       _apiSaved = apiKey.isNotEmpty;
+      _apiPanelOpen = apiKey.isEmpty;
     });
   }
 
@@ -215,7 +239,10 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
     if (!mounted) {
       return;
     }
-    setState(() => _apiSaved = true);
+    setState(() {
+      _apiSaved = true;
+      _apiPanelOpen = false;
+    });
     _showSnack('API kaydedildi.');
   }
 
@@ -228,6 +255,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
     setState(() {
       _apiKeyController.clear();
       _apiSaved = false;
+      _apiPanelOpen = true;
     });
     _showSnack('API silindi.');
   }
@@ -248,6 +276,37 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
       _imageBytes = bytes;
       _imageName = image.name;
     });
+  }
+
+  Future<void> _loadSharedImage(SharedReceiptImage sharedImage) async {
+    if (_loadedSharedImageId == sharedImage.id) {
+      return;
+    }
+    _loadedSharedImageId = sharedImage.id;
+
+    try {
+      final image = XFile(
+        sharedImage.path,
+        mimeType: sharedImage.mimeType,
+        name: _fileNameFromPath(sharedImage.path),
+      );
+      final bytes = await image.readAsBytes();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _imageBytes = bytes;
+        _imageName = image.name;
+      });
+      ref.read(sharedReceiptImageProvider.notifier).state = null;
+      _showSnack('Paylaşılan görsel hazır.');
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ref.read(sharedReceiptImageProvider.notifier).state = null;
+      _showSnack('Paylaşılan görsel açılamadı.');
+    }
   }
 
   Future<void> _readWithAi(List<EmployeeModel> employees) async {
@@ -543,6 +602,11 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
       return;
     }
 
+    final confirmed = await _confirmSameDayRecords(date, transactions);
+    if (!confirmed) {
+      return;
+    }
+
     setState(() => _saving = true);
     try {
       await ref
@@ -560,6 +624,58 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
         setState(() => _saving = false);
       }
     }
+  }
+
+  Future<bool> _confirmSameDayRecords(
+    DateTime date,
+    List<TransactionModel> newTransactions,
+  ) async {
+    if (newTransactions.isEmpty) {
+      return true;
+    }
+
+    final dateKey = AppDateUtils.dateKey(date);
+    final monthKey = AppDateUtils.monthKey(date);
+    List<TransactionModel> existing;
+    try {
+      existing = await ref.read(transactionsByMonthProvider(monthKey).future);
+    } catch (_) {
+      return true;
+    }
+
+    final sameDay =
+        existing.where((transaction) => transaction.date == dateKey).toList();
+    if (sameDay.isEmpty || !mounted) {
+      return true;
+    }
+
+    final labels =
+        sameDay.map((transaction) => transaction.typeLabel).toSet().join(', ');
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Aynı güne kayıt var'),
+          content: Text(
+            '$dateKey tarihinde zaten ${sameDay.length} kayıt var.'
+            '\n\nGörünen kayıtlar: $labels'
+            '\n\nTarihi kontrol edip yine kaydetmek istiyor musun?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Vazgeç'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Yine Kaydet'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
   }
 
   TransactionModel _transaction({
@@ -609,6 +725,15 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
       return 'image/heif';
     }
     return 'image/jpeg';
+  }
+
+  String _fileNameFromPath(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final slashIndex = normalized.lastIndexOf('/');
+    if (slashIndex == -1 || slashIndex == normalized.length - 1) {
+      return 'whatsapp-fis.jpg';
+    }
+    return normalized.substring(slashIndex + 1);
   }
 
   String _guessExpenseCategory(String text) {
@@ -749,6 +874,8 @@ class _ApiCard extends StatelessWidget {
     required this.apiKeyController,
     required this.model,
     required this.apiSaved,
+    required this.expanded,
+    required this.onToggle,
     required this.onModelChanged,
     required this.onSave,
     required this.onClear,
@@ -757,6 +884,8 @@ class _ApiCard extends StatelessWidget {
   final TextEditingController apiKeyController;
   final String model;
   final bool apiSaved;
+  final bool expanded;
+  final VoidCallback onToggle;
   final ValueChanged<String?> onModelChanged;
   final VoidCallback onSave;
   final VoidCallback onClear;
@@ -778,49 +907,62 @@ class _ApiCard extends StatelessWidget {
               _StatusPill(text: apiSaved ? 'API kayıtlı' : 'API yok'),
             ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: apiKeyController,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Gemini API Key'),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: onToggle,
+              icon: Icon(
+                expanded ? Icons.keyboard_arrow_up : Icons.tune_outlined,
+              ),
+              label: Text(expanded ? 'Kapat' : 'Ayar'),
+            ),
           ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: model,
-            decoration: const InputDecoration(labelText: 'Model'),
-            items: const [
-              DropdownMenuItem(
-                value: 'gemini-2.5-flash-lite',
-                child: Text('gemini-2.5-flash-lite'),
-              ),
-              DropdownMenuItem(
-                value: 'gemini-2.5-flash',
-                child: Text('gemini-2.5-flash'),
-              ),
-              DropdownMenuItem(
-                value: 'gemini-2.0-flash',
-                child: Text('gemini-2.0-flash'),
-              ),
-            ],
-            onChanged: onModelChanged,
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              FilledButton.icon(
-                onPressed: onSave,
-                icon: const Icon(Icons.save_outlined),
-                label: const Text('API Kaydet'),
-              ),
-              OutlinedButton.icon(
-                onPressed: onClear,
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('API Sil'),
-              ),
-            ],
-          ),
+          if (expanded) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: apiKeyController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Gemini API Key'),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: model,
+              decoration: const InputDecoration(labelText: 'Model'),
+              items: const [
+                DropdownMenuItem(
+                  value: 'gemini-2.5-flash-lite',
+                  child: Text('gemini-2.5-flash-lite'),
+                ),
+                DropdownMenuItem(
+                  value: 'gemini-2.5-flash',
+                  child: Text('gemini-2.5-flash'),
+                ),
+                DropdownMenuItem(
+                  value: 'gemini-2.0-flash',
+                  child: Text('gemini-2.0-flash'),
+                ),
+              ],
+              onChanged: onModelChanged,
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                FilledButton.icon(
+                  onPressed: onSave,
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text('API Kaydet'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onClear,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('API Sil'),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

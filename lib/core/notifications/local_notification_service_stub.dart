@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/announcement_model.dart';
@@ -13,6 +15,8 @@ class LocalNotificationService {
   LocalNotificationService();
 
   bool get isSupported => false;
+
+  Stream<String> get notificationPayloads => const Stream.empty();
 
   Future<bool> initialize() async => false;
 

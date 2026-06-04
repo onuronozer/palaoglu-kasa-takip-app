@@ -74,15 +74,13 @@ final farmWorkerPaymentsProvider = StreamProvider<List<FarmWorkerPaymentModel>>(
 
 final farmApricotVarietiesProvider =
     StreamProvider<List<FarmApricotVarietyModel>>((ref) {
-      return ref.watch(farmRepositoryProvider).watchApricotVarieties();
-    });
+  return ref.watch(farmRepositoryProvider).watchApricotVarieties();
+});
 
 final activeApricotVarietyNamesProvider = Provider<AsyncValue<List<String>>>((
   ref,
 ) {
-  return ref
-      .watch(farmApricotVarietiesProvider)
-      .whenData(
+  return ref.watch(farmApricotVarietiesProvider).whenData(
         (varieties) => varieties
             .where((variety) => variety.active)
             .map((variety) => variety.name)
@@ -413,9 +411,7 @@ class FarmRepository {
 
   Future<void> addExpense(FarmExpenseModel expense) async {
     final id = expense.id.isEmpty ? Uuid().v4() : expense.id;
-    await _expenses
-        .doc(id)
-        .set(
+    await _expenses.doc(id).set(
           FarmExpenseModel(
             id: id,
             date: expense.date,

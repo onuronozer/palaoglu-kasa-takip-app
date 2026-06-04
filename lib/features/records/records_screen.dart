@@ -89,17 +89,17 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                       final filtered = _filter == 'all'
                           ? transactions
                           : _filter == _creditCardFilter
-                          ? transactions
-                                .where(
-                                  (item) =>
-                                      item.type == TransactionTypes.masraf &&
-                                      item.category ==
-                                          AppCategories.creditCard,
-                                )
-                                .toList()
-                          : transactions
-                                .where((item) => item.type == _filter)
-                                .toList();
+                              ? transactions
+                                  .where(
+                                    (item) =>
+                                        item.type == TransactionTypes.masraf &&
+                                        item.category ==
+                                            AppCategories.creditCard,
+                                  )
+                                  .toList()
+                              : transactions
+                                  .where((item) => item.type == _filter)
+                                  .toList();
 
                       return _RecordsList(
                         records: filtered,

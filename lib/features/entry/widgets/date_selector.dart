@@ -95,9 +95,8 @@ class DateSelector extends StatelessWidget {
                 child: Container(
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.surfaceAlt,
+                    color:
+                        isSelected ? AppColors.primary : AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected ? AppColors.primary : AppColors.border,
