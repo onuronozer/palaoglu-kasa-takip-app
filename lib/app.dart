@@ -6,6 +6,7 @@ import 'core/notifications/notification_bootstrap.dart';
 import 'core/share/share_intent_bootstrap.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/startup_splash.dart';
 import 'features/admin/announcement_screen.dart';
 import 'features/admin/user_management_screen.dart';
 import 'features/ai_receipt/ai_receipt_screen.dart';
@@ -237,9 +238,11 @@ class PalaogluKasaApp extends ConsumerWidget {
       theme: AppTheme.darkTheme,
       routerConfig: ref.watch(appRouterProvider),
       builder: (context, child) {
-        return ColoredBox(
-          color: AppColors.background,
-          child: child ?? const SizedBox.shrink(),
+        return StartupSplash(
+          child: ColoredBox(
+            color: AppColors.background,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/branding/app_assets.dart';
 import '../../core/theme/app_colors.dart';
 import '../auth/auth_controller.dart';
 
@@ -27,14 +28,14 @@ class BusinessSelectionScreen extends ConsumerWidget {
                       Container(
                         width: 54,
                         height: 54,
+                        clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.14),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
                         ),
-                        child: const Icon(
-                          Icons.business_center_outlined,
-                          color: AppColors.primary,
-                          size: 28,
+                        child: Image.asset(
+                          AppAssets.palaogluLogo,
+                          fit: BoxFit.cover,
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -137,7 +138,7 @@ class _BusinessCard extends StatelessWidget {
             border: Border.all(color: AppColors.border),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.08),
+                color: color.withValues(alpha: 0.08),
                 blurRadius: 22,
                 offset: const Offset(0, 14),
               ),
@@ -149,7 +150,7 @@ class _BusinessCard extends StatelessWidget {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.14),
+                  color: color.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Icon(icon, color: color, size: 28),
