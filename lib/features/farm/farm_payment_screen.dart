@@ -71,7 +71,7 @@ class _FarmPaymentScreenState extends ConsumerState<FarmPaymentScreen> {
                     error: (_, __) =>
                         const _StateCard(message: 'Tüccar listesi okunamadı.'),
                     data: (merchants) => _MerchantDropdown(
-                      merchants: merchants,
+                      merchants: _activeMerchantsForSelection(merchants),
                       selectedId: _merchantId,
                       enabled: !_isSaving,
                       onChanged: (value) => setState(() => _merchantId = value),
@@ -359,6 +359,15 @@ class _MerchantDropdown extends StatelessWidget {
       onChanged: enabled ? onChanged : null,
     );
   }
+}
+
+List<MerchantModel> _activeMerchantsForSelection(
+  List<MerchantModel> merchants, {
+  String? selectedId,
+}) {
+  return merchants
+      .where((merchant) => merchant.active || merchant.id == selectedId)
+      .toList();
 }
 
 class _PaymentList extends StatelessWidget {

@@ -196,9 +196,9 @@ class _FarmVarietyScreenState extends ConsumerState<FarmVarietyScreen> {
           builder: (context) {
             return AlertDialog(
               backgroundColor: AppColors.surface,
-              title: const Text('Kayısı cinsini sil'),
+              title: const Text('Kayısı cinsini pasife al'),
               content: Text(
-                '${variety.name} silinsin mi? Eski satış kayıtlarındaki yazı korunur.',
+                '${variety.name} yeni satış girişlerinde görünmez. Eski satış kayıtlarındaki yazı korunur.',
                 style: const TextStyle(color: AppColors.mutedText),
               ),
               actions: [
@@ -208,7 +208,7 @@ class _FarmVarietyScreenState extends ConsumerState<FarmVarietyScreen> {
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Sil'),
+                  child: const Text('Pasife Al'),
                 ),
               ],
             );
@@ -222,9 +222,9 @@ class _FarmVarietyScreenState extends ConsumerState<FarmVarietyScreen> {
     setState(() => _isSaving = true);
     try {
       await ref.read(farmRepositoryProvider).deleteApricotVariety(variety.id);
-      _showSnack('Kayısı cinsi silindi.');
+      _showSnack('Kayısı cinsi pasife alındı.');
     } catch (_) {
-      _showSnack('Kayısı cinsi silinemedi.');
+      _showSnack('Kayısı cinsi pasife alınamadı.');
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -426,7 +426,7 @@ class _VarietyTile extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Sil',
+            tooltip: 'Pasife Al',
             onPressed: isSaving ? null : onDelete,
             icon: const Icon(Icons.delete_outline, color: AppColors.expense),
           ),

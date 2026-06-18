@@ -310,9 +310,9 @@ class _FarmFieldScreenState extends ConsumerState<FarmFieldScreen> {
           builder: (context) {
             return AlertDialog(
               backgroundColor: AppColors.surface,
-              title: const Text('Tarlayı sil'),
+              title: const Text('Tarlayı pasife al'),
               content: Text(
-                '${field.name} silinsin mi? Eski kayıtlarda tarla bağlantısı korunmayabilir.',
+                '${field.name} yeni girişlerde görünmez. Eski kayıtları ve rapor bağlantısı korunur.',
                 style: const TextStyle(color: AppColors.mutedText),
               ),
               actions: [
@@ -322,7 +322,7 @@ class _FarmFieldScreenState extends ConsumerState<FarmFieldScreen> {
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Sil'),
+                  child: const Text('Pasife Al'),
                 ),
               ],
             );
@@ -336,9 +336,9 @@ class _FarmFieldScreenState extends ConsumerState<FarmFieldScreen> {
     setState(() => _isSaving = true);
     try {
       await ref.read(farmRepositoryProvider).deleteFarmField(field.id);
-      _showSnack('Tarla silindi.');
+      _showSnack('Tarla pasife alındı.');
     } catch (_) {
-      _showSnack('Tarla silinemedi.');
+      _showSnack('Tarla pasife alınamadı.');
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -604,7 +604,7 @@ class _FieldTile extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Sil',
+            tooltip: 'Pasife Al',
             onPressed: isSaving ? null : onDelete,
             icon: const Icon(Icons.delete_outline, color: AppColors.expense),
           ),

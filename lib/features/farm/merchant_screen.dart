@@ -64,7 +64,7 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
                       merchants: merchants,
                       isSaving: _isSaving,
                       onEdit: _showEditMerchantDialog,
-                      onDelete: _confirmDeleteMerchant,
+                      onToggleActive: _confirmToggleMerchant,
                     ),
                   ),
                 ],
@@ -169,15 +169,19 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
     }
   }
 
-  Future<void> _confirmDeleteMerchant(MerchantModel merchant) async {
+  Future<void> _confirmToggleMerchant(MerchantModel merchant) async {
+    final nextActive = !merchant.active;
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) {
             return AlertDialog(
               backgroundColor: AppColors.surface,
-              title: const Text('Tüccarı sil'),
+              title: Text(
+                  nextActive ? 'Tüccarı aktifleştir' : 'Tüccarı pasife al'),
               content: Text(
-                '${merchant.fullName} silinsin mi? Eski satış ve tahsilat kayıtları kalır.',
+                nextActive
+                    ? '${merchant.fullName} yeni satış ve tahsilat girişlerinde tekrar görünsün mü?'
+                    : '${merchant.fullName} yeni satış ve tahsilat girişlerinde görünmez. Eski satış, tahsilat ve cari geçmişi korunur.',
                 style: const TextStyle(color: AppColors.mutedText),
               ),
               actions: [
@@ -187,7 +191,7 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Sil'),
+                  child: Text(nextActive ? 'Aktifleştir' : 'Pasife Al'),
                 ),
               ],
             );
@@ -200,10 +204,13 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await ref.read(farmRepositoryProvider).deleteMerchant(merchant.id);
-      _showSnack('Tüccar silindi.');
+      await ref
+          .read(farmRepositoryProvider)
+          .setMerchantActive(merchant: merchant, active: nextActive);
+      _showSnack(
+          nextActive ? 'Tüccar aktifleştirildi.' : 'Tüccar pasife alındı.');
     } catch (_) {
-      _showSnack('Tüccar silinemedi.');
+      _showSnack('Tüccar durumu güncellenemedi.');
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -283,13 +290,13 @@ class _MerchantList extends StatelessWidget {
     required this.merchants,
     required this.isSaving,
     required this.onEdit,
-    required this.onDelete,
+    required this.onToggleActive,
   });
 
   final List<MerchantModel> merchants;
   final bool isSaving;
   final ValueChanged<MerchantModel> onEdit;
-  final ValueChanged<MerchantModel> onDelete;
+  final ValueChanged<MerchantModel> onToggleActive;
 
   @override
   Widget build(BuildContext context) {
@@ -316,7 +323,7 @@ class _MerchantList extends StatelessWidget {
                 merchant: merchant,
                 isSaving: isSaving,
                 onEdit: () => onEdit(merchant),
-                onDelete: () => onDelete(merchant),
+                onToggleActive: () => onToggleActive(merchant),
               ),
         ],
       ),
@@ -329,13 +336,13 @@ class _MerchantTile extends StatelessWidget {
     required this.merchant,
     required this.isSaving,
     required this.onEdit,
-    required this.onDelete,
+    required this.onToggleActive,
   });
 
   final MerchantModel merchant;
   final bool isSaving;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback onToggleActive;
 
   @override
   Widget build(BuildContext context) {
@@ -353,12 +360,22 @@ class _MerchantTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  merchant.fullName,
-                  style: const TextStyle(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.w900,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        merchant.fullName,
+                        style: TextStyle(
+                          color: merchant.active
+                              ? AppColors.text
+                              : AppColors.mutedText,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _MerchantStatusPill(active: merchant.active),
+                  ],
                 ),
                 if (merchant.phone.isNotEmpty) ...[
                   const SizedBox(height: 3),
@@ -387,11 +404,42 @@ class _MerchantTile extends StatelessWidget {
             icon: const Icon(Icons.edit_outlined),
           ),
           IconButton(
-            tooltip: 'Sil',
-            onPressed: isSaving ? null : onDelete,
-            icon: const Icon(Icons.delete_outline, color: AppColors.expense),
+            tooltip: merchant.active ? 'Pasife Al' : 'Aktifleştir',
+            onPressed: isSaving ? null : onToggleActive,
+            icon: Icon(
+              merchant.active
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              color: merchant.active ? AppColors.expense : AppColors.primary,
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MerchantStatusPill extends StatelessWidget {
+  const _MerchantStatusPill({required this.active});
+
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? AppColors.primary : AppColors.expense;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        active ? 'Aktif' : 'Pasif',
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }

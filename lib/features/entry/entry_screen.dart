@@ -17,10 +17,16 @@ import 'widgets/date_selector.dart';
 import 'widgets/payment_source_selector.dart';
 
 class EntryScreen extends ConsumerStatefulWidget {
-  const EntryScreen({required this.entryType, this.initialMonthKey, super.key});
+  const EntryScreen({
+    required this.entryType,
+    this.initialMonthKey,
+    this.initialDateKey,
+    super.key,
+  });
 
   final String entryType;
   final String? initialMonthKey;
+  final String? initialDateKey;
 
   @override
   ConsumerState<EntryScreen> createState() => _EntryScreenState();
@@ -42,11 +48,23 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   void initState() {
     super.initState();
     final initialMonth = AppDateUtils.monthFromKey(widget.initialMonthKey);
+    final initialDate = widget.initialDateKey == null
+        ? null
+        : DateTime.tryParse(widget.initialDateKey!);
     final now = DateTime.now();
-    final day = initialMonth.year == now.year && initialMonth.month == now.month
-        ? now.day
-        : 1;
-    _selectedDate = DateTime(initialMonth.year, initialMonth.month, day);
+    if (initialDate != null) {
+      _selectedDate = DateTime(
+        initialDate.year,
+        initialDate.month,
+        initialDate.day,
+      );
+    } else {
+      final day =
+          initialMonth.year == now.year && initialMonth.month == now.month
+              ? now.day
+              : 1;
+      _selectedDate = DateTime(initialMonth.year, initialMonth.month, day);
+    }
 
     if (widget.entryType == TransactionTypes.borc) {
       _selectedCategory = AppCategories.debtGiven;

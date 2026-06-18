@@ -24,6 +24,12 @@ final merchantsProvider = StreamProvider<List<MerchantModel>>((ref) {
   return ref.watch(farmRepositoryProvider).watchMerchants();
 });
 
+final activeMerchantsProvider =
+    Provider<AsyncValue<List<MerchantModel>>>((ref) {
+  return ref.watch(merchantsProvider).whenData(
+      (merchants) => merchants.where((merchant) => merchant.active).toList());
+});
+
 final farmSalesProvider = StreamProvider<List<FarmSaleModel>>((ref) {
   return ref.watch(farmRepositoryProvider).watchSales();
 });
@@ -124,7 +130,12 @@ class FarmRepository {
   Stream<List<MerchantModel>> watchMerchants() {
     return _merchants.snapshots().map((snapshot) {
       final items = snapshot.docs.map(MerchantModel.fromDoc).toList();
-      items.sort((a, b) => a.fullName.compareTo(b.fullName));
+      items.sort((a, b) {
+        if (a.active != b.active) {
+          return a.active ? -1 : 1;
+        }
+        return a.fullName.compareTo(b.fullName);
+      });
       return items;
     });
   }
@@ -226,8 +237,18 @@ class FarmRepository {
     await _merchants.doc(merchant.id).update(merchant.toUpdateMap());
   }
 
+  Future<void> setMerchantActive({
+    required MerchantModel merchant,
+    required bool active,
+  }) async {
+    await updateMerchant(merchant.copyWith(active: active));
+  }
+
   Future<void> deleteMerchant(String id) async {
-    await _merchants.doc(id).delete();
+    await _merchants.doc(id).update({
+      'active': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<void> addSale(FarmSaleModel sale) async {
@@ -449,7 +470,10 @@ class FarmRepository {
   }
 
   Future<void> deleteFarmField(String id) async {
-    await _farmFields.doc(id).delete();
+    await _farmFields.doc(id).update({
+      'active': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<void> addFarmWorker({
@@ -523,6 +547,9 @@ class FarmRepository {
   }
 
   Future<void> deleteApricotVariety(String id) async {
-    await _apricotVarieties.doc(id).delete();
+    await _apricotVarieties.doc(id).update({
+      'active': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 }

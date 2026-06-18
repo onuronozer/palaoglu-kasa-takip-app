@@ -89,6 +89,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             children: [
                               _MetricGrid(summary: summary),
                               const SizedBox(height: 18),
+                              _MissingCiroCard(
+                                selectedMonth: _selectedMonth,
+                                missingDates: _missingCiroDates(
+                                  transactions,
+                                  _selectedMonth,
+                                ),
+                              ),
+                              const SizedBox(height: 18),
                               _ActionGrid(
                                 monthKey: monthKey,
                                 isAdmin: appUser?.isAdmin ?? false,
@@ -567,6 +575,106 @@ class _ActionGrid extends StatelessWidget {
         const SizedBox(height: 18),
         _ActionSection(title: 'Diğer', actions: otherActions),
       ],
+    );
+  }
+}
+
+class _MissingCiroCard extends StatelessWidget {
+  const _MissingCiroCard({
+    required this.selectedMonth,
+    required this.missingDates,
+  });
+
+  final DateTime selectedMonth;
+  final List<DateTime> missingDates;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final month = DateTime(selectedMonth.year, selectedMonth.month);
+    final currentMonth = DateTime(now.year, now.month);
+    final isFutureMonth = month.isAfter(currentMonth);
+    final hasMissing = missingDates.isNotEmpty;
+    final color = hasMissing ? AppColors.expense : AppColors.income;
+    final monthKey = AppDateUtils.monthKey(selectedMonth);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(hasMissing ? 0.45 : 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  hasMissing
+                      ? Icons.event_busy_outlined
+                      : Icons.event_available_outlined,
+                  color: color,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _missingCiroTitle(
+                        hasMissing: hasMissing,
+                        isFutureMonth: isFutureMonth,
+                        missingCount: missingDates.length,
+                      ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _missingCiroSubtitle(
+                        selectedMonth: selectedMonth,
+                        hasMissing: hasMissing,
+                        isFutureMonth: isFutureMonth,
+                      ),
+                      style: const TextStyle(color: AppColors.mutedText),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (hasMissing) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final date in missingDates)
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      context.push(
+                        '/entry/ciro?month=$monthKey&date=${AppDateUtils.dateKey(date)}',
+                      );
+                    },
+                    icon: const Icon(Icons.add_chart, size: 18),
+                    label: Text(_shortDayLabel(date)),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -1126,6 +1234,76 @@ String _friendlyOcrError(Object error) {
       .toString()
       .replaceFirst('Unsupported operation: ', '')
       .replaceFirst('Bad state: ', '');
+}
+
+List<DateTime> _missingCiroDates(
+  List<TransactionModel> transactions,
+  DateTime selectedMonth,
+) {
+  final now = DateTime.now();
+  final month = DateTime(selectedMonth.year, selectedMonth.month);
+  final currentMonth = DateTime(now.year, now.month);
+  if (month.isAfter(currentMonth)) {
+    return const [];
+  }
+
+  final lastDayToCheck = month.year == now.year && month.month == now.month
+      ? now.day - 1
+      : AppDateUtils.daysInMonth(month);
+  if (lastDayToCheck < 1) {
+    return const [];
+  }
+
+  final monthKey = AppDateUtils.monthKey(month);
+  final ciroDays = <int>{};
+  for (final transaction in transactions) {
+    if (transaction.type != TransactionTypes.ciro ||
+        !transaction.date.startsWith(monthKey)) {
+      continue;
+    }
+    final date = AppDateUtils.dateFromKey(transaction.date);
+    if (date.year == month.year && date.month == month.month) {
+      ciroDays.add(date.day);
+    }
+  }
+
+  return [
+    for (var day = 1; day <= lastDayToCheck; day++)
+      if (!ciroDays.contains(day)) DateTime(month.year, month.month, day),
+  ];
+}
+
+String _shortDayLabel(DateTime date) {
+  return '${date.day} ${AppDateUtils.monthNames[date.month - 1]}';
+}
+
+String _missingCiroTitle({
+  required bool hasMissing,
+  required bool isFutureMonth,
+  required int missingCount,
+}) {
+  if (isFutureMonth) {
+    return 'Ciro takibi başlamadı';
+  }
+  if (hasMissing) {
+    return '$missingCount gün ciro girilmemiş';
+  }
+  return 'Eksik ciro günü yok';
+}
+
+String _missingCiroSubtitle({
+  required DateTime selectedMonth,
+  required bool hasMissing,
+  required bool isFutureMonth,
+}) {
+  final label = AppDateUtils.monthLabel(selectedMonth);
+  if (isFutureMonth) {
+    return '$label için gün gelince eksik ciro takibi başlar.';
+  }
+  if (hasMissing) {
+    return '$label içinde düne kadar eksik görünen günler';
+  }
+  return '$label için düne kadar tüm cirolar girilmiş görünüyor.';
 }
 
 int _defaultDayForMonth(DateTime month) {

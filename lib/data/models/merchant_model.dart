@@ -6,6 +6,7 @@ class MerchantModel {
     required this.fullName,
     required this.phone,
     required this.currentBalance,
+    this.active = true,
     this.createdAt,
     this.updatedAt,
   });
@@ -14,6 +15,7 @@ class MerchantModel {
   final String fullName;
   final String phone;
   final double currentBalance;
+  final bool active;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -22,6 +24,7 @@ class MerchantModel {
     String? fullName,
     String? phone,
     double? currentBalance,
+    bool? active,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -30,6 +33,7 @@ class MerchantModel {
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
       currentBalance: currentBalance ?? this.currentBalance,
+      active: active ?? this.active,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -42,6 +46,7 @@ class MerchantModel {
       fullName: data['ad_soyad'] as String? ?? '',
       phone: data['telefon'] as String? ?? '',
       currentBalance: _doubleFromFirestore(data['guncel_bakiye']),
+      active: data['active'] as bool? ?? true,
       createdAt: _dateFromFirestore(data['createdAt']),
       updatedAt: _dateFromFirestore(data['updatedAt']),
     );
@@ -53,6 +58,7 @@ class MerchantModel {
       'ad_soyad': fullName,
       'telefon': phone,
       'guncel_bakiye': currentBalance,
+      'active': active,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -62,6 +68,7 @@ class MerchantModel {
     return {
       'ad_soyad': fullName,
       'telefon': phone,
+      'active': active,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }

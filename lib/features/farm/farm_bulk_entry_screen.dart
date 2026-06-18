@@ -87,10 +87,13 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
                   child: _StateCard(message: 'Tüccar listesi okunamadı.'),
                 ),
                 data: (merchants) {
+                  final activeMerchants = _activeMerchantsForSelection(
+                    merchants,
+                  );
                   return _FarmDesktopBulkPanel(
                     selectedMonth: _selectedMonth,
                     rows: _desktopDrafts,
-                    merchants: merchants,
+                    merchants: activeMerchants,
                     fields: fields,
                     workers: workers,
                     apricotOptions: apricotOptions,
@@ -140,6 +143,9 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
                           message: 'Tüccar listesi okunamadı.',
                         ),
                         data: (merchants) {
+                          final activeMerchants = _activeMerchantsForSelection(
+                            merchants,
+                          );
                           return Column(
                             children: [
                               for (var index = 0;
@@ -148,7 +154,7 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
                                 _BulkDraftCard(
                                   index: index,
                                   draft: _drafts[index],
-                                  merchants: merchants,
+                                  merchants: activeMerchants,
                                   fields: fields,
                                   apricotOptions: apricotOptions,
                                   selectedMonth: _selectedMonth,
@@ -783,6 +789,15 @@ class _BulkDraftCard extends StatelessWidget {
       ),
     );
   }
+}
+
+List<MerchantModel> _activeMerchantsForSelection(
+  List<MerchantModel> merchants, {
+  String? selectedId,
+}) {
+  return merchants
+      .where((merchant) => merchant.active || merchant.id == selectedId)
+      .toList();
 }
 
 class _MerchantDropdown extends StatelessWidget {
