@@ -105,7 +105,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Fiş Oku'),
+        title: const Text('Fiş Aktar'),
         leading: IconButton(
           tooltip: 'Geri',
           icon: const Icon(Icons.arrow_back),
@@ -127,22 +127,34 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _ApiCard(
-                    apiKeyController: _apiKeyController,
-                    model: _model,
-                    apiSaved: _apiSaved,
-                    expanded: _apiPanelOpen,
-                    onToggle: () {
-                      setState(() => _apiPanelOpen = !_apiPanelOpen);
-                    },
-                    onModelChanged: (value) {
-                      if (value != null) {
-                        setState(() => _model = value);
-                      }
-                    },
-                    onSave: _saveApiSettings,
-                    onClear: _clearApiSettings,
-                  ),
+                  if (_apiPanelOpen || !_apiSaved)
+                    _ApiCard(
+                      apiKeyController: _apiKeyController,
+                      model: _model,
+                      apiSaved: _apiSaved,
+                      expanded: _apiPanelOpen,
+                      onToggle: () {
+                        setState(() => _apiPanelOpen = !_apiPanelOpen);
+                      },
+                      onModelChanged: (value) {
+                        if (value != null) {
+                          setState(() => _model = value);
+                        }
+                      },
+                      onSave: _saveApiSettings,
+                      onClear: _clearApiSettings,
+                    )
+                  else
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() => _apiPanelOpen = true);
+                        },
+                        icon: const Icon(Icons.tune_outlined),
+                        label: const Text('Servis Ayarı'),
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   _ImageCard(
                     imageBytes: _imageBytes,
@@ -230,7 +242,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
   Future<void> _saveApiSettings() async {
     final apiKey = _apiKeyController.text.trim();
     if (apiKey.isEmpty) {
-      _showSnack('API key boş.');
+      _showSnack('Servis anahtarı boş.');
       return;
     }
     final prefs = await SharedPreferences.getInstance();
@@ -243,7 +255,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
       _apiSaved = true;
       _apiPanelOpen = false;
     });
-    _showSnack('API kaydedildi.');
+    _showSnack('Servis ayarı kaydedildi.');
   }
 
   Future<void> _clearApiSettings() async {
@@ -257,7 +269,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
       _apiSaved = false;
       _apiPanelOpen = true;
     });
-    _showSnack('API silindi.');
+    _showSnack('Servis ayarı silindi.');
   }
 
   Future<void> _pickImage() async {
@@ -312,7 +324,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
   Future<void> _readWithAi(List<EmployeeModel> employees) async {
     final apiKey = _apiKeyController.text.trim();
     if (apiKey.isEmpty) {
-      _showSnack('API key gerekli.');
+      _showSnack('Servis anahtarı gerekli.');
       return;
     }
     if (_imageBytes == null) {
@@ -379,14 +391,14 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final error = payload['error'];
       if (error is Map<String, dynamic>) {
-        throw StateError(error['message'] as String? ?? 'AI isteği başarısız.');
+        throw StateError(error['message'] as String? ?? 'İşlem başarısız.');
       }
-      throw StateError('AI isteği başarısız.');
+      throw StateError('İşlem başarısız.');
     }
 
     final candidates = payload['candidates'];
     if (candidates is! List || candidates.isEmpty) {
-      throw StateError('AI sonucu boş.');
+      throw StateError('Sonuç boş.');
     }
     final content = candidates.first['content'];
     final parts = content is Map<String, dynamic> ? content['parts'] : null;
@@ -394,7 +406,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
         ? parts.first['text'] as String?
         : null;
     if (text == null || text.trim().isEmpty) {
-      throw StateError('AI sonucu okunamadı.');
+      throw StateError('Sonuç okunamadı.');
     }
 
     return _AiReceiptResult.fromJson(_decodeJsonObject(text));
@@ -504,8 +516,8 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
           category: AppCategories.ciro,
           amount: totalCiro,
           description: lunchCiro > 0
-              ? 'AI fiş - Öğlen ciro: ${MoneyUtils.format(lunchCiro)}'
-              : 'AI fiş',
+              ? 'Fiş aktarımı - Öğlen ciro: ${MoneyUtils.format(lunchCiro)}'
+              : 'Fiş aktarımı',
         ),
       );
     }
@@ -528,7 +540,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
           category: draft.category,
           amount: amount,
           description: draft.descriptionController.text.trim().isEmpty
-              ? 'AI fiş'
+              ? 'Fiş aktarımı'
               : draft.descriptionController.text.trim(),
           paymentSource: draft.paymentSource,
         ),
@@ -554,8 +566,8 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
           person: draft.selectedEmployee!,
           amount: amount,
           description: draft.originalName.trim().isEmpty
-              ? 'AI fiş'
-              : 'AI fiş - ${draft.originalName.trim()}',
+              ? 'Fiş aktarımı'
+              : 'Fiş aktarımı - ${draft.originalName.trim()}',
           paymentSource: draft.paymentSource,
         ),
       );
@@ -569,7 +581,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
           type: TransactionTypes.banka,
           category: AppCategories.banka,
           amount: bankAmount,
-          description: 'AI fiş',
+          description: 'Fiş aktarımı',
         ),
       );
     }
@@ -587,7 +599,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
             category: _debtCategory,
             person: person,
             amount: debtAmount,
-            description: 'AI fiş',
+            description: 'Fiş aktarımı',
           ),
         );
       }
@@ -842,10 +854,10 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
   String _friendlyAiError(Object error) {
     final text = error.toString();
     if (text.contains('API key not valid') || text.contains('API_KEY')) {
-      return 'API key hatalı.';
+      return 'Servis anahtarı hatalı.';
     }
     if (text.contains('quota') || text.contains('RESOURCE_EXHAUSTED')) {
-      return 'AI kotası doldu.';
+      return 'Servis kotası doldu.';
     }
     return 'Fiş okunamadı.';
   }
@@ -900,11 +912,11 @@ class _ApiCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'API Ayarı',
+                  'Servis Ayarı',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
-              _StatusPill(text: apiSaved ? 'API kayıtlı' : 'API yok'),
+              _StatusPill(text: apiSaved ? 'Anahtar kayıtlı' : 'Anahtar yok'),
             ],
           ),
           const SizedBox(height: 8),
@@ -923,24 +935,24 @@ class _ApiCard extends StatelessWidget {
             TextField(
               controller: apiKeyController,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Gemini API Key'),
+              decoration: const InputDecoration(labelText: 'Servis Anahtarı'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: model,
-              decoration: const InputDecoration(labelText: 'Model'),
+              decoration: const InputDecoration(labelText: 'Servis Tipi'),
               items: const [
                 DropdownMenuItem(
                   value: 'gemini-2.5-flash-lite',
-                  child: Text('gemini-2.5-flash-lite'),
+                  child: Text('Hızlı'),
                 ),
                 DropdownMenuItem(
                   value: 'gemini-2.5-flash',
-                  child: Text('gemini-2.5-flash'),
+                  child: Text('Dengeli'),
                 ),
                 DropdownMenuItem(
                   value: 'gemini-2.0-flash',
-                  child: Text('gemini-2.0-flash'),
+                  child: Text('Uyumlu'),
                 ),
               ],
               onChanged: onModelChanged,
@@ -953,12 +965,12 @@ class _ApiCard extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: onSave,
                   icon: const Icon(Icons.save_outlined),
-                  label: const Text('API Kaydet'),
+                  label: const Text('Anahtarı Kaydet'),
                 ),
                 OutlinedButton.icon(
                   onPressed: onClear,
                   icon: const Icon(Icons.delete_outline),
-                  label: const Text('API Sil'),
+                  label: const Text('Anahtarı Sil'),
                 ),
               ],
             ),
@@ -1017,7 +1029,7 @@ class _ImageCard extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.auto_awesome_outlined),
+                : const Icon(Icons.document_scanner_outlined),
             label: Text(reading ? 'Okunuyor' : 'Oku'),
           ),
         ],
@@ -1073,7 +1085,7 @@ class _ReceiptFormCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('AI Fiş Kontrol', style: Theme.of(context).textTheme.titleLarge),
+          Text('Fiş Kontrol', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 14),
           DateSelector(selectedDate: selectedDate, onChanged: onDateChanged),
           const SizedBox(height: 14),

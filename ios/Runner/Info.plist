@@ -38,7 +38,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>AI fis ve kredi karti gorsellerini okumak icin fotograf secimi kullanilir.</string>
+	<string>Fis aktarimi ve kart ekstresi gorsellerini secmek icin fotograf erisimi kullanilir.</string>
 	<key>AppGroupId</key>
 	<string>group.com.palaoglu.kasatakip</string>
 	<key>UIApplicationSceneManifest</key>

@@ -28,7 +28,7 @@ Future<OcrImageResult?> pickImageAndReadOcrText() async {
     Duration(seconds: _isLikelyMobileBrowser() ? 150 : 90),
     onTimeout: () {
       throw StateError(
-        'OCR uzun sürdü ve durduruldu. Tekrar OCR ile Oku düğmesine basabilirsin.',
+        'Okuma uzun sürdü ve durduruldu. Tekrar Oku düğmesine basabilirsin.',
       );
     },
   );
@@ -213,7 +213,8 @@ Future<js.JsObject> _loadTesseract() async {
   script.onError.first.then((_) {
     if (!completer.isCompleted) {
       completer.completeError(
-        StateError('OCR motoru yüklenemedi. İnternet bağlantısını kontrol et.'),
+        StateError(
+            'Okuma motoru yüklenemedi. İnternet bağlantısını kontrol et.'),
       );
     }
   });
@@ -221,12 +222,12 @@ Future<js.JsObject> _loadTesseract() async {
   html.document.head?.append(script);
   await completer.future.timeout(
     Duration(seconds: _isLikelyMobileBrowser() ? 35 : 20),
-    onTimeout: () => throw StateError('OCR motoru çok geç yüklendi.'),
+    onTimeout: () => throw StateError('Okuma motoru çok geç yüklendi.'),
   );
 
   final loaded = js.context['Tesseract'];
   if (loaded is! js.JsObject) {
-    throw StateError('OCR motoru hazır değil.');
+    throw StateError('Okuma motoru hazır değil.');
   }
   return loaded;
 }
@@ -234,7 +235,7 @@ Future<js.JsObject> _loadTesseract() async {
 Future<js.JsObject> _promiseToJsObject(Object promise) {
   final completer = Completer<js.JsObject>();
   if (promise is! js.JsObject) {
-    return Future.error(StateError('OCR sonucu okunamadı.'));
+    return Future.error(StateError('Okuma sonucu okunamadı.'));
   }
 
   promise.callMethod('then', [
@@ -242,7 +243,7 @@ Future<js.JsObject> _promiseToJsObject(Object promise) {
       if (!completer.isCompleted && result is js.JsObject) {
         completer.complete(result);
       } else if (!completer.isCompleted) {
-        completer.completeError(StateError('OCR sonucu boş geldi.'));
+        completer.completeError(StateError('Okuma sonucu boş geldi.'));
       }
     },
     (Object error) {

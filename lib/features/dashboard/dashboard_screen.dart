@@ -152,7 +152,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     final amounts = _extractCreditCardOcrAmounts(text);
     if (amounts.isEmpty) {
-      _showSnack('OCR yazıyı okudu ama kredi kartı tutarı bulamadı.');
+      _showSnack('Ekstre okundu ama tutar bulunamadı.');
       return;
     }
     if (!mounted) {
@@ -510,13 +510,13 @@ class _ActionGrid extends StatelessWidget {
         onTap: () => context.push('/entry/isci?month=$monthKey'),
       ),
       _ActionItem(
-        title: 'AI Fiş Oku',
-        icon: Icons.auto_awesome_outlined,
+        title: 'Fiş Aktar',
+        icon: Icons.receipt_long_outlined,
         color: AppColors.turquoise,
         onTap: () => context.push('/ai-receipt?month=$monthKey'),
       ),
       _ActionItem(
-        title: isReadingOcr ? 'OCR Okunuyor' : 'Kredi Kartı OCR',
+        title: isReadingOcr ? 'Ekstre Okunuyor' : 'Kart Ekstresi',
         icon: Icons.document_scanner_outlined,
         color: AppColors.primary,
         onTap: onReadOcr,
@@ -857,7 +857,7 @@ class _CreditCardOcrReviewDialogState
 
     return AlertDialog(
       backgroundColor: AppColors.surface,
-      title: const Text('Kredi kartı OCR'),
+      title: const Text('Kart ekstresi'),
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(

@@ -706,7 +706,7 @@ class _BulkEntryScreenState extends ConsumerState<BulkEntryScreen> {
 
       final amounts = _extractCreditCardOcrAmounts(result.text);
       if (amounts.isEmpty) {
-        _showSnack('OCR yazıyı okudu ama tutar bulamadı.');
+        _showSnack('Ekstre okundu ama tutar bulunamadı.');
         return const <double>[];
       }
 
@@ -1075,8 +1075,8 @@ class _KiraathaneDesktopBulkPanel extends StatelessWidget {
                           icon: const Icon(Icons.document_scanner_outlined),
                           label: Text(
                             isReadingOcr
-                                ? 'OCR okunuyor...'
-                                : 'Kredi Kartı OCR',
+                                ? 'Ekstre okunuyor...'
+                                : 'Kart Ekstresi',
                           ),
                         ),
                         OutlinedButton.icon(
@@ -1993,7 +1993,7 @@ class _CreditCardBulkCard extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: isSaving || isReadingOcr ? null : onReadOcr,
             icon: const Icon(Icons.document_scanner_outlined),
-            label: Text(isReadingOcr ? 'OCR okunuyor...' : 'OCR ile Oku'),
+            label: Text(isReadingOcr ? 'Ekstre okunuyor...' : 'Ekstre Oku'),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
@@ -2347,7 +2347,7 @@ class _StateCard extends StatelessWidget {
 }
 
 class _EmployeePaymentDraft {
-  _EmployeePaymentDraft({required this.day, this.employee});
+  _EmployeePaymentDraft({required this.day});
 
   int day;
   String? employee;
