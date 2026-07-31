@@ -149,10 +149,10 @@ class MarketRatesRepository {
   }
 }
 
-const _marketRateCodes = ['ALTIN', 'USDTRY', 'EURTRY'];
+const _marketRateCodes = ['KULCEALTIN', 'USDTRY', 'EURTRY'];
 
 const _marketRateLabels = {
-  'ALTIN': 'Gram Altın',
+  'KULCEALTIN': 'Gram Altın',
   'USDTRY': 'Dolar',
   'EURTRY': 'Euro',
 };

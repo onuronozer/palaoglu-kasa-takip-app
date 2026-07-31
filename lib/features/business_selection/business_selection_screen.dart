@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/branding/app_assets.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/models/market_rate_model.dart';
+import '../../data/repositories/market_rates_repository.dart';
 import '../auth/auth_controller.dart';
 
 class BusinessSelectionScreen extends ConsumerWidget {
@@ -12,6 +15,7 @@ class BusinessSelectionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentAppUserProvider).valueOrNull;
+    final marketRatesState = ref.watch(marketRatesProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -70,7 +74,9 @@ class BusinessSelectionScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 18),
+                  _GramGoldCard(ratesState: marketRatesState),
+                  const SizedBox(height: 18),
                   _BusinessCard(
                     title: 'Palaoğlu Kıraathanesi',
                     icon: Icons.point_of_sale_outlined,
@@ -105,6 +111,83 @@ class BusinessSelectionScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GramGoldCard extends StatelessWidget {
+  const _GramGoldCard({required this.ratesState});
+
+  final AsyncValue<List<MarketRateModel>> ratesState;
+
+  @override
+  Widget build(BuildContext context) {
+    final rates = ratesState.valueOrNull ?? const <MarketRateModel>[];
+    final rate = _gramGoldRate(rates);
+    final loading = ratesState.isLoading && rate == null;
+    final hasError = ratesState.hasError && rate == null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.workspace_premium_outlined,
+              color: AppColors.warning,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Gram Altın',
+                  style: TextStyle(
+                    color: AppColors.mutedText,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    rate == null
+                        ? loading
+                            ? 'Yükleniyor'
+                            : hasError
+                                ? 'Bağlantı yok'
+                                : '-'
+                        : _formatGramGold(rate.sell),
+                    style: const TextStyle(
+                      color: AppColors.text,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            _rateDirectionIcon(rate?.direction),
+            color: _rateDirectionColor(rate?.direction),
+          ),
+        ],
       ),
     );
   }
@@ -173,5 +256,43 @@ class _BusinessCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+MarketRateModel? _gramGoldRate(List<MarketRateModel> rates) {
+  for (final rate in rates) {
+    if (rate.code == 'KULCEALTIN') {
+      return rate;
+    }
+  }
+  return null;
+}
+
+String _formatGramGold(double value) {
+  final formatter = NumberFormat.decimalPattern('tr_TR')
+    ..minimumFractionDigits = 2
+    ..maximumFractionDigits = 2;
+  return '${formatter.format(value)} TL';
+}
+
+IconData _rateDirectionIcon(String? direction) {
+  switch (direction) {
+    case 'up':
+      return Icons.trending_up;
+    case 'down':
+      return Icons.trending_down;
+    default:
+      return Icons.remove;
+  }
+}
+
+Color _rateDirectionColor(String? direction) {
+  switch (direction) {
+    case 'up':
+      return AppColors.income;
+    case 'down':
+      return AppColors.expense;
+    default:
+      return AppColors.mutedText;
   }
 }

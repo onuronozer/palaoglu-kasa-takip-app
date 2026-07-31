@@ -172,6 +172,8 @@ class BusinessOverviewScreen extends ConsumerWidget {
                 children: [
                   _OverviewHeader(loading: loading),
                   const SizedBox(height: 16),
+                  _MarketRatesPanel(ratesState: marketRatesState),
+                  const SizedBox(height: 16),
                   _SectionCard(
                     title: 'Palaoğlu Kıraathanesi',
                     subtitle: AppDateUtils.monthLabel(currentMonth),
@@ -242,8 +244,6 @@ class BusinessOverviewScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _MarketRatesPanel(ratesState: marketRatesState),
                   const SizedBox(height: 16),
                   _AdminActionGrid(
                     actions: [
@@ -329,7 +329,7 @@ class _MarketRatesPanel extends StatelessWidget {
                     title: 'Gram Altın',
                     icon: Icons.workspace_premium_outlined,
                     color: AppColors.warning,
-                    rate: _rateByCode(rates, 'ALTIN'),
+                    rate: _rateByCode(rates, 'KULCEALTIN'),
                     loading: loading,
                     hasError: hasError,
                   ),
@@ -722,7 +722,7 @@ MarketRateModel? _rateByCode(List<MarketRateModel> rates, String code) {
 }
 
 String _formatMarketRate(double value, String code) {
-  final fractionDigits = code == 'ALTIN' ? 2 : 4;
+  final fractionDigits = code == 'KULCEALTIN' ? 2 : 4;
   final formatter = NumberFormat.decimalPattern('tr_TR')
     ..minimumFractionDigits = fractionDigits
     ..maximumFractionDigits = fractionDigits;
