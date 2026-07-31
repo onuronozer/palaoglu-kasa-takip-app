@@ -206,7 +206,7 @@ class _PasteImportScreenState extends ConsumerState<PasteImportScreen> {
         _rows = result.rows;
         _selectedRowIndexes = result.selectedIndexes;
       });
-      _showSnack('Kaydedilecek yeni ciro yok.');
+      _showSnack('Kaydedilecek yeni kayıt yok.');
       return;
     }
 
@@ -218,14 +218,14 @@ class _PasteImportScreenState extends ConsumerState<PasteImportScreen> {
             id: '',
             date: AppDateUtils.dateKey(row.date!),
             monthKey: AppDateUtils.monthKey(row.date!),
-            type: TransactionTypes.ciro,
-            category: AppCategories.ciro,
-            person: '',
+            type: row.type,
+            category: row.category,
+            person: row.person,
             amount: row.amount,
-            description: 'Yapıştırarak ciro girişi',
+            description: row.description,
             createdByUid: appUser.uid,
             createdByName: appUser.displayName,
-            paymentSource: PaymentSources.cash,
+            paymentSource: row.paymentSource,
           ),
       ];
 
@@ -235,7 +235,7 @@ class _PasteImportScreenState extends ConsumerState<PasteImportScreen> {
         return;
       }
       _showSnack(
-        '${records.length} ciro kaydı eklendi. Toplam ${MoneyUtils.format(_sumRows(selectedReadyRows))}.',
+        '${records.length} kayıt eklendi. Toplam ${MoneyUtils.format(_sumRows(selectedReadyRows))}.',
       );
       setState(() {
         _pasteController.clear();
@@ -244,7 +244,7 @@ class _PasteImportScreenState extends ConsumerState<PasteImportScreen> {
       });
     } catch (_) {
       if (mounted) {
-        _showSnack('Ciro kayıtları kaydedilemedi.');
+        _showSnack('Kayıtlar kaydedilemedi.');
       }
     } finally {
       if (mounted) {
@@ -298,7 +298,7 @@ class _PasteInputCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Ciro listesi',
+                  'Kayıt listesi',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
@@ -313,8 +313,9 @@ class _PasteInputCard extends StatelessWidget {
             keyboardType: TextInputType.multiline,
             onChanged: (_) => onChanged(),
             decoration: const InputDecoration(
-              labelText: 'Gün ve ciro',
-              hintText: '01 19450\n02 20800\n03 21750',
+              labelText: 'Gün, işlem, konu ve tutar',
+              hintText:
+                  '01;ciro;;19450\n01;masraf;Çay;1250\n01;isci;Mehmet;2000',
               alignLabelWithHint: true,
               prefixIcon: Icon(Icons.table_rows_outlined),
             ),
@@ -423,7 +424,7 @@ class _ImportSummaryCard extends StatelessWidget {
             onPressed: isSaving || saveRows.isEmpty ? null : onSave,
             icon: const Icon(Icons.save_outlined),
             label:
-                Text(isSaving ? 'Kaydediliyor...' : 'Seçili Ciroları Kaydet'),
+                Text(isSaving ? 'Kaydediliyor...' : 'Seçili Kayıtları Kaydet'),
           ),
         ],
       ),
@@ -514,7 +515,10 @@ class _PreviewTable extends StatelessWidget {
           DataColumn(label: Text('Seç')),
           DataColumn(label: Text('Satır')),
           DataColumn(label: Text('Gün')),
-          DataColumn(label: Text('Ciro')),
+          DataColumn(label: Text('İşlem')),
+          DataColumn(label: Text('Konu')),
+          DataColumn(label: Text('Tutar')),
+          DataColumn(label: Text('Ödeme')),
           DataColumn(label: Text('Durum')),
         ],
         rows: [
@@ -532,7 +536,10 @@ class _PreviewTable extends StatelessWidget {
                 ),
                 DataCell(Text('${rows[index].sourceLine}')),
                 DataCell(Text(rows[index].dateLabel)),
+                DataCell(Text(rows[index].typeLabel)),
+                DataCell(Text(rows[index].subjectLabel)),
                 DataCell(Text(rows[index].amountLabel)),
+                DataCell(Text(rows[index].paymentSourceLabel)),
                 DataCell(_StatusPill(row: rows[index])),
               ],
             ),
@@ -577,12 +584,19 @@ class _PreviewTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${row.dateLabel} - ${row.amountLabel}',
+                  '${row.dateLabel} - ${row.typeLabel} - ${row.amountLabel}',
                   style: const TextStyle(
                     color: AppColors.text,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                if (row.subjectLabel != '-') ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    row.subjectLabel,
+                    style: const TextStyle(color: AppColors.mutedText),
+                  ),
+                ],
                 const SizedBox(height: 6),
                 _StatusPill(row: row),
               ],
@@ -719,7 +733,12 @@ class _PasteImportRow {
     required this.sourceLine,
     required this.rawText,
     required this.date,
+    required this.type,
+    required this.category,
+    required this.person,
     required this.amount,
+    required this.paymentSource,
+    required this.description,
     required this.status,
     required this.message,
   });
@@ -727,7 +746,12 @@ class _PasteImportRow {
   final int sourceLine;
   final String rawText;
   final DateTime? date;
+  final String type;
+  final String category;
+  final String person;
   final double amount;
+  final String paymentSource;
+  final String description;
   final _PasteRowStatus status;
   final String message;
 
@@ -745,6 +769,30 @@ class _PasteImportRow {
       return '-';
     }
     return MoneyUtils.format(amount);
+  }
+
+  String get typeLabel {
+    if (type.isEmpty) {
+      return '-';
+    }
+    return TransactionTypes.label(type);
+  }
+
+  String get subjectLabel {
+    if (type == TransactionTypes.isci) {
+      return person.isEmpty ? '-' : person;
+    }
+    if (type == TransactionTypes.masraf) {
+      return category.isEmpty ? '-' : category;
+    }
+    return category.isEmpty ? '-' : category;
+  }
+
+  String get paymentSourceLabel {
+    if (paymentSource.isEmpty) {
+      return '-';
+    }
+    return PaymentSources.label(paymentSource);
   }
 
   Color get color {
@@ -771,18 +819,19 @@ _BuildRowsResult _buildRows({
   final rows = <_PasteImportRow>[];
   final selectedIndexes = <int>{};
   final existingCiroByDate = <String, double>{};
+  final existingExactRows = <String>{};
   for (final transaction in transactions) {
-    if (transaction.type != TransactionTypes.ciro) {
-      continue;
+    if (transaction.type == TransactionTypes.ciro) {
+      existingCiroByDate.update(
+        transaction.date,
+        (value) => value + transaction.amount,
+        ifAbsent: () => transaction.amount,
+      );
     }
-    existingCiroByDate.update(
-      transaction.date,
-      (value) => value + transaction.amount,
-      ifAbsent: () => transaction.amount,
-    );
+    existingExactRows.add(_transactionSignature(transaction));
   }
 
-  final seenPasteDates = <String>{};
+  final seenPasteRows = <String>{};
   final lines = rawText.split(RegExp(r'\r?\n'));
   for (var index = 0; index < lines.length; index++) {
     final rawLine = lines[index].trim();
@@ -793,13 +842,12 @@ _BuildRowsResult _buildRows({
     final parsed = _parseLine(rawLine, selectedMonth);
     if (parsed.error != null) {
       rows.add(
-        _PasteImportRow(
+        _rowFromParsed(
           sourceLine: index + 1,
           rawText: rawLine,
-          date: parsed.date,
-          amount: parsed.amount,
           status: _PasteRowStatus.invalid,
           message: parsed.error!,
+          parsed: parsed,
         ),
       );
       continue;
@@ -809,66 +857,105 @@ _BuildRowsResult _buildRows({
     final dateKey = AppDateUtils.dateKey(date);
     if (date.year != selectedMonth.year || date.month != selectedMonth.month) {
       rows.add(
-        _PasteImportRow(
+        _rowFromParsed(
           sourceLine: index + 1,
           rawText: rawLine,
-          date: date,
-          amount: parsed.amount,
           status: _PasteRowStatus.invalid,
           message: 'Seçili ay dışında',
+          parsed: parsed,
         ),
       );
       continue;
     }
 
-    if (seenPasteDates.contains(dateKey)) {
+    final pasteSignature = _parsedSignature(parsed);
+    final pasteDuplicateKey = parsed.type == TransactionTypes.ciro
+        ? '${TransactionTypes.ciro}|$dateKey'
+        : pasteSignature;
+    if (seenPasteRows.contains(pasteDuplicateKey)) {
       rows.add(
-        _PasteImportRow(
+        _rowFromParsed(
           sourceLine: index + 1,
           rawText: rawLine,
-          date: date,
-          amount: parsed.amount,
           status: _PasteRowStatus.conflict,
-          message: 'Listede aynı gün tekrar var',
+          message: parsed.type == TransactionTypes.ciro
+              ? 'Listede aynı gün tekrar var'
+              : 'Listede aynı kayıt tekrar var',
+          parsed: parsed,
         ),
       );
       continue;
     }
-    seenPasteDates.add(dateKey);
+    seenPasteRows.add(pasteDuplicateKey);
 
-    final existingAmount = existingCiroByDate[dateKey];
-    if (existingAmount != null) {
+    final existingAmount = parsed.type == TransactionTypes.ciro
+        ? existingCiroByDate[dateKey]
+        : null;
+    if (parsed.type == TransactionTypes.ciro && existingAmount != null) {
       final sameAmount = (existingAmount - parsed.amount).abs() < 0.01;
       rows.add(
-        _PasteImportRow(
+        _rowFromParsed(
           sourceLine: index + 1,
           rawText: rawLine,
-          date: date,
-          amount: parsed.amount,
           status:
               sameAmount ? _PasteRowStatus.duplicate : _PasteRowStatus.conflict,
           message: sameAmount
               ? 'Zaten var'
               : 'Mevcut ${MoneyUtils.format(existingAmount)}',
+          parsed: parsed,
+        ),
+      );
+      continue;
+    }
+
+    if (existingExactRows.contains(pasteSignature)) {
+      rows.add(
+        _rowFromParsed(
+          sourceLine: index + 1,
+          rawText: rawLine,
+          status: _PasteRowStatus.duplicate,
+          message: 'Zaten var',
+          parsed: parsed,
         ),
       );
       continue;
     }
 
     rows.add(
-      _PasteImportRow(
+      _rowFromParsed(
         sourceLine: index + 1,
         rawText: rawLine,
-        date: date,
-        amount: parsed.amount,
         status: _PasteRowStatus.ready,
         message: 'Eklenecek',
+        parsed: parsed,
       ),
     );
     selectedIndexes.add(rows.length - 1);
   }
 
   return _BuildRowsResult(rows: rows, selectedIndexes: selectedIndexes);
+}
+
+_PasteImportRow _rowFromParsed({
+  required int sourceLine,
+  required String rawText,
+  required _PasteRowStatus status,
+  required String message,
+  required _ParsedLine parsed,
+}) {
+  return _PasteImportRow(
+    sourceLine: sourceLine,
+    rawText: rawText,
+    date: parsed.date,
+    type: parsed.type,
+    category: parsed.category,
+    person: parsed.person,
+    amount: parsed.amount,
+    paymentSource: parsed.paymentSource,
+    description: parsed.description,
+    status: status,
+    message: message,
+  );
 }
 
 bool _shouldSkipLine(String line) {
@@ -879,33 +966,44 @@ bool _shouldSkipLine(String line) {
   return folded == 'gun ciro' ||
       folded == 'tarih ciro' ||
       folded == 'gun tutar' ||
-      folded == 'tarih tutar';
+      folded == 'tarih tutar' ||
+      folded == 'gun islem konu tutar' ||
+      folded == 'tarih islem konu tutar';
 }
 
 class _ParsedLine {
   const _ParsedLine({
     required this.date,
+    required this.type,
+    required this.category,
+    required this.person,
     required this.amount,
+    required this.paymentSource,
+    required this.description,
     this.error,
   });
 
   final DateTime? date;
+  final String type;
+  final String category;
+  final String person;
   final double amount;
+  final String paymentSource;
+  final String description;
   final String? error;
 }
 
 _ParsedLine _parseLine(String line, DateTime selectedMonth) {
-  final delimitedParts = line
-      .split(RegExp(r'[;\t|]+'))
-      .map((item) => item.trim())
-      .where((item) => item.isNotEmpty)
-      .toList();
-  if (delimitedParts.length >= 2) {
-    return _parseDateAndAmount(
-      dateText: delimitedParts.first,
-      amountText: delimitedParts.sublist(1).join(' '),
-      selectedMonth: selectedMonth,
-    );
+  final hasDelimiter = RegExp(r'[;\t|]').hasMatch(line);
+  if (hasDelimiter) {
+    final delimitedParts =
+        line.split(RegExp(r'[;\t|]')).map((item) => item.trim()).toList();
+    return _parseDelimitedLine(delimitedParts, selectedMonth);
+  }
+
+  final typedLine = _parseTypedSpaceLine(line, selectedMonth);
+  if (typedLine != null) {
+    return typedLine;
   }
 
   final isoMatch = RegExp(r'^\s*(\d{4})[-./](\d{1,2})[-./](\d{1,2})\s+(.+)$')
@@ -916,7 +1014,7 @@ _ParsedLine _parseLine(String line, DateTime selectedMonth) {
       month: int.tryParse(isoMatch.group(2)!),
       day: int.tryParse(isoMatch.group(3)!),
     );
-    return _parseAmountForDate(date, isoMatch.group(4) ?? '');
+    return _parseCiroForDate(date, isoMatch.group(4) ?? '');
   }
 
   final dateMatch =
@@ -932,7 +1030,7 @@ _ParsedLine _parseLine(String line, DateTime selectedMonth) {
       month: int.tryParse(dateMatch.group(2)!),
       day: int.tryParse(dateMatch.group(1)!),
     );
-    return _parseAmountForDate(date, dateMatch.group(4) ?? '');
+    return _parseCiroForDate(date, dateMatch.group(4) ?? '');
   }
 
   final dayMatch = RegExp(r'^\s*(\d{1,2})\s*[,;:-]?\s+(.+)$').firstMatch(line);
@@ -942,33 +1040,209 @@ _ParsedLine _parseLine(String line, DateTime selectedMonth) {
       month: selectedMonth.month,
       day: int.tryParse(dayMatch.group(1)!),
     );
-    return _parseAmountForDate(date, dayMatch.group(2) ?? '');
+    return _parseCiroForDate(date, dayMatch.group(2) ?? '');
   }
 
-  return const _ParsedLine(date: null, amount: 0, error: 'Gün okunamadı');
+  return _invalidParsedLine('Gün okunamadı');
 }
 
-_ParsedLine _parseDateAndAmount({
+_ParsedLine _parseDelimitedLine(
+  List<String> parts,
+  DateTime selectedMonth,
+) {
+  final compactParts = parts.where((part) => part.isNotEmpty).toList();
+  if (compactParts.length < 2) {
+    return _invalidParsedLine('Satır okunamadı');
+  }
+
+  final firstType = _parseTransactionType(compactParts[0]);
+  if (firstType != null) {
+    return _parseTypedParts(
+      type: firstType,
+      dateText: compactParts.length > 1 ? compactParts[1] : '',
+      subjectText: compactParts.length > 2 ? compactParts[2] : '',
+      amountText: compactParts.length > 3 ? compactParts[3] : '',
+      paymentSourceText: compactParts.length > 4 ? compactParts[4] : '',
+      selectedMonth: selectedMonth,
+    );
+  }
+
+  final secondType =
+      compactParts.length > 1 ? _parseTransactionType(compactParts[1]) : null;
+  if (secondType == null) {
+    return _parseCiroForDate(
+      _parseDateText(compactParts.first, selectedMonth),
+      compactParts.sublist(1).join(' '),
+    );
+  }
+
+  return _parseTypedParts(
+    type: secondType,
+    dateText: compactParts.first,
+    subjectText: compactParts.length > 2 ? compactParts[2] : '',
+    amountText: compactParts.length > 3 ? compactParts[3] : '',
+    paymentSourceText: compactParts.length > 4 ? compactParts[4] : '',
+    selectedMonth: selectedMonth,
+  );
+}
+
+_ParsedLine? _parseTypedSpaceLine(String line, DateTime selectedMonth) {
+  final tokens = line.split(RegExp(r'\s+')).where((item) => item.isNotEmpty);
+  final parts = tokens.toList();
+  if (parts.length < 3) {
+    return null;
+  }
+
+  final firstType = _parseTransactionType(parts[0]);
+  if (firstType != null) {
+    return _parseTypedFreeText(
+      type: firstType,
+      dateText: parts[1],
+      bodyText: parts.sublist(2).join(' '),
+      selectedMonth: selectedMonth,
+    );
+  }
+
+  final secondType = _parseTransactionType(parts[1]);
+  if (secondType != null) {
+    return _parseTypedFreeText(
+      type: secondType,
+      dateText: parts[0],
+      bodyText: parts.sublist(2).join(' '),
+      selectedMonth: selectedMonth,
+    );
+  }
+
+  return null;
+}
+
+_ParsedLine _parseTypedFreeText({
+  required String type,
   required String dateText,
-  required String amountText,
+  required String bodyText,
   required DateTime selectedMonth,
 }) {
-  DateTime? date;
+  final split = _splitSubjectAndAmount(bodyText);
+  return _parseTypedParts(
+    type: type,
+    dateText: dateText,
+    subjectText: split.subject,
+    amountText: split.amountText,
+    paymentSourceText: '',
+    selectedMonth: selectedMonth,
+  );
+}
+
+_ParsedLine _parseTypedParts({
+  required String type,
+  required String dateText,
+  required String subjectText,
+  required String amountText,
+  required String paymentSourceText,
+  required DateTime selectedMonth,
+}) {
+  final date = _parseDateText(dateText, selectedMonth);
+  if (date == null) {
+    return _invalidParsedLine('Tarih hatalı');
+  }
+
+  var subject = subjectText.trim();
+  var amountSource = amountText.trim();
+  if (amountSource.isEmpty && type == TransactionTypes.ciro) {
+    amountSource = subject;
+    subject = '';
+  }
+  if (amountSource.isEmpty && type != TransactionTypes.ciro) {
+    final split = _splitSubjectAndAmount(subject);
+    subject = split.subject;
+    amountSource = split.amountText;
+  }
+
+  final amount = _extractAmount(amountSource);
+  if (amount <= 0) {
+    return _ParsedLine(
+      date: date,
+      type: type,
+      category: _categoryFor(type, subject),
+      person: _personFor(type, subject),
+      amount: 0,
+      paymentSource: PaymentSources.cash,
+      description: '',
+      error: 'Tutar okunamadı',
+    );
+  }
+
+  if (type == TransactionTypes.isci && subject.isEmpty) {
+    return _ParsedLine(
+      date: date,
+      type: type,
+      category: AppCategories.isci,
+      person: '',
+      amount: amount,
+      paymentSource: PaymentSources.cash,
+      description: '',
+      error: 'Personel okunamadı',
+    );
+  }
+
+  return _ParsedLine(
+    date: date,
+    type: type,
+    category: _categoryFor(type, subject),
+    person: _personFor(type, subject),
+    amount: amount,
+    paymentSource: _parsePaymentSource(paymentSourceText),
+    description: _descriptionFor(type),
+  );
+}
+
+_ParsedLine _parseCiroForDate(DateTime? date, String amountText) {
+  if (date == null) {
+    return _invalidParsedLine('Tarih hatalı');
+  }
+
+  final amount = _extractAmount(amountText);
+  if (amount <= 0) {
+    return _ParsedLine(
+      date: date,
+      type: TransactionTypes.ciro,
+      category: AppCategories.ciro,
+      person: '',
+      amount: 0,
+      paymentSource: PaymentSources.cash,
+      description: 'Yapıştırarak ciro girişi',
+      error: 'Tutar okunamadı',
+    );
+  }
+
+  return _ParsedLine(
+    date: date,
+    type: TransactionTypes.ciro,
+    category: AppCategories.ciro,
+    person: '',
+    amount: amount,
+    paymentSource: PaymentSources.cash,
+    description: 'Yapıştırarak ciro girişi',
+  );
+}
+
+DateTime? _parseDateText(String dateText, DateTime selectedMonth) {
+  final text = dateText.trim();
   final isoMatch =
-      RegExp(r'^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$').firstMatch(dateText);
+      RegExp(r'^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$').firstMatch(text);
   if (isoMatch != null) {
-    date = _dateFromParts(
+    return _dateFromParts(
       year: int.tryParse(isoMatch.group(1)!),
       month: int.tryParse(isoMatch.group(2)!),
       day: int.tryParse(isoMatch.group(3)!),
     );
   }
 
-  final dateMatch = RegExp(r'^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?$')
-      .firstMatch(dateText);
-  if (date == null && dateMatch != null) {
+  final dateMatch =
+      RegExp(r'^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?$').firstMatch(text);
+  if (dateMatch != null) {
     final yearText = dateMatch.group(3);
-    date = _dateFromParts(
+    return _dateFromParts(
       year: yearText == null
           ? selectedMonth.year
           : _normalizeYear(int.tryParse(yearText)),
@@ -977,37 +1251,152 @@ _ParsedLine _parseDateAndAmount({
     );
   }
 
-  date ??= _dateFromParts(
+  return _dateFromParts(
     year: selectedMonth.year,
     month: selectedMonth.month,
-    day: int.tryParse(dateText),
+    day: int.tryParse(text),
   );
-
-  return _parseAmountForDate(date, amountText);
-}
-
-_ParsedLine _parseAmountForDate(DateTime? date, String amountText) {
-  if (date == null) {
-    return const _ParsedLine(date: null, amount: 0, error: 'Tarih hatalı');
-  }
-
-  final amount = _extractAmount(amountText);
-  if (amount <= 0) {
-    return _ParsedLine(date: date, amount: 0, error: 'Tutar okunamadı');
-  }
-
-  return _ParsedLine(date: date, amount: amount);
 }
 
 double _extractAmount(String text) {
-  final match = RegExp(
-    r'[-+]?\s*(?:\d{1,3}(?:[.\s]\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)',
-  ).firstMatch(text);
+  final match = _moneyPattern.firstMatch(text);
   if (match == null) {
     return 0;
   }
   return MoneyUtils.parse(match.group(0) ?? '');
 }
+
+_SubjectAmountSplit _splitSubjectAndAmount(String text) {
+  final matches = _moneyPattern.allMatches(text).toList();
+  if (matches.isEmpty) {
+    return _SubjectAmountSplit(subject: text.trim(), amountText: '');
+  }
+  final match = matches.last;
+  final subject =
+      '${text.substring(0, match.start)} ${text.substring(match.end)}'.trim();
+  return _SubjectAmountSplit(
+    subject: subject,
+    amountText: match.group(0) ?? '',
+  );
+}
+
+String? _parseTransactionType(String value) {
+  final folded = _foldTurkish(value);
+  if (folded == 'ciro' || folded == 'gelir') {
+    return TransactionTypes.ciro;
+  }
+  if (folded == 'masraf' || folded == 'gider' || folded == 'harcama') {
+    return TransactionTypes.masraf;
+  }
+  if (folded == 'isci' ||
+      folded == 'isçi' ||
+      folded == 'personel' ||
+      folded == 'calisan') {
+    return TransactionTypes.isci;
+  }
+  return null;
+}
+
+String _categoryFor(String type, String subject) {
+  if (type == TransactionTypes.ciro) {
+    return AppCategories.ciro;
+  }
+  if (type == TransactionTypes.isci) {
+    return AppCategories.isci;
+  }
+  final trimmed = subject.trim();
+  return trimmed.isEmpty ? 'Genel Masraf' : trimmed;
+}
+
+String _personFor(String type, String subject) {
+  if (type == TransactionTypes.isci) {
+    return subject.trim();
+  }
+  return '';
+}
+
+String _descriptionFor(String type) {
+  if (type == TransactionTypes.ciro) {
+    return 'Yapıştırarak ciro girişi';
+  }
+  if (type == TransactionTypes.isci) {
+    return 'Yapıştırarak işçi ödemesi';
+  }
+  return 'Yapıştırarak masraf girişi';
+}
+
+String _parsePaymentSource(String value) {
+  final folded = _foldTurkish(value);
+  if (folded.contains('sahsi') ||
+      folded.contains('kisisel') ||
+      folded.contains('cebim')) {
+    return PaymentSources.personal;
+  }
+  if (folded.contains('kredi') ||
+      folded.contains('kart') ||
+      folded.contains('banka')) {
+    return PaymentSources.bank;
+  }
+  return PaymentSources.cash;
+}
+
+String _transactionSignature(TransactionModel transaction) {
+  return _signature(
+    date: transaction.date,
+    type: transaction.type,
+    category: transaction.category,
+    person: transaction.person,
+    amount: transaction.amount,
+  );
+}
+
+String _parsedSignature(_ParsedLine parsed) {
+  return _signature(
+    date: AppDateUtils.dateKey(parsed.date!),
+    type: parsed.type,
+    category: parsed.category,
+    person: parsed.person,
+    amount: parsed.amount,
+  );
+}
+
+String _signature({
+  required String date,
+  required String type,
+  required String category,
+  required String person,
+  required double amount,
+}) {
+  final subject = type == TransactionTypes.isci ? person : category;
+  return '$date|$type|${_foldTurkish(subject)}|${amount.toStringAsFixed(2)}';
+}
+
+_ParsedLine _invalidParsedLine(String error) {
+  return _ParsedLine(
+    date: null,
+    type: '',
+    category: '',
+    person: '',
+    amount: 0,
+    paymentSource: '',
+    description: '',
+    error: error,
+  );
+}
+
+class _SubjectAmountSplit {
+  const _SubjectAmountSplit({
+    required this.subject,
+    required this.amountText,
+  });
+
+  final String subject;
+  final String amountText;
+}
+
+final _moneyPattern = RegExp(
+  r'[-+]?\s*(?:\d{1,3}(?:[.\s]\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)',
+);
 
 DateTime? _dateFromParts({
   required int? year,
