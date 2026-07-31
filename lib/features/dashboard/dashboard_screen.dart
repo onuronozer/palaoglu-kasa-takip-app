@@ -542,6 +542,12 @@ class _ActionGrid extends StatelessWidget {
         color: AppColors.primary,
         onTap: () => context.push('/bulk-entry?month=$monthKey'),
       ),
+      _ActionItem(
+        title: 'Yapıştırarak Giriş',
+        icon: Icons.content_paste_go_outlined,
+        color: AppColors.primary,
+        onTap: () => context.push('/paste-import?month=$monthKey'),
+      ),
     ];
 
     final otherActions = [

@@ -28,6 +28,7 @@ import 'features/farm/farm_sale_screen.dart';
 import 'features/farm/farm_variety_screen.dart';
 import 'features/farm/farm_worker_screen.dart';
 import 'features/farm/merchant_screen.dart';
+import 'features/paste_import/paste_import_screen.dart';
 import 'features/records/edit_transaction_screen.dart';
 import 'features/records/records_screen.dart';
 import 'features/reminders/reminders_screen.dart';
@@ -86,6 +87,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           return AuthGate(
             child: BulkEntryScreen(
+              initialMonthKey: state.uri.queryParameters['month'],
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/paste-import',
+        builder: (context, state) {
+          return AuthGate(
+            child: PasteImportScreen(
               initialMonthKey: state.uri.queryParameters['month'],
             ),
           );
