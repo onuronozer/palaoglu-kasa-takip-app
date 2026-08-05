@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
@@ -9,6 +10,7 @@ import '../../core/utils/whatsapp_utils.dart';
 import '../../data/repositories/employee_repository.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../dashboard/widgets/month_selector.dart';
+import 'monthly_report_pdf.dart';
 import 'widgets/debt_summary_card.dart';
 import 'widgets/expense_detail_table_card.dart';
 import 'widgets/employee_salary_card.dart';
@@ -101,11 +103,39 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                           );
                           final debts = ReportUtils.debtByPerson(transactions);
 
+                          Future<void> openPdfReport() async {
+                            try {
+                              await Printing.layoutPdf(
+                                name: 'palaoglu-kiraathane-$monthKey-rapor.pdf',
+                                onLayout: (format) =>
+                                    buildKiraathaneMonthlyReportPdf(
+                                  month: _selectedMonth,
+                                  monthLabel: monthLabel,
+                                  summary: summary,
+                                  transactions: transactions,
+                                  employeeSummaries: employeeSummaries,
+                                  debts: debts,
+                                  pageFormat: format,
+                                ),
+                              );
+                            } catch (_) {
+                              if (!context.mounted) {
+                                return;
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('PDF rapor oluşturulamadı.'),
+                                ),
+                              );
+                            }
+                          }
+
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               _ReportHeader(
                                 monthLabel: monthLabel,
+                                onPdf: openPdfReport,
                                 onWhatsapp: () async {
                                   final opened =
                                       await WhatsAppUtils.openMonthlySummary(
@@ -113,7 +143,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                                     summary: summary,
                                     employeeSummaries: employeeSummaries,
                                   );
-                                  if (!mounted) {
+                                  if (!context.mounted) {
                                     return;
                                   }
                                   if (!opened) {
@@ -163,10 +193,15 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 }
 
 class _ReportHeader extends StatelessWidget {
-  const _ReportHeader({required this.monthLabel, required this.onWhatsapp});
+  const _ReportHeader({
+    required this.monthLabel,
+    required this.onWhatsapp,
+    required this.onPdf,
+  });
 
   final String monthLabel;
   final VoidCallback onWhatsapp;
+  final VoidCallback onPdf;
 
   @override
   Widget build(BuildContext context) {
@@ -190,10 +225,24 @@ class _ReportHeader extends StatelessWidget {
             style: TextStyle(color: AppColors.mutedText),
           ),
           const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: onWhatsapp,
-            icon: const Icon(Icons.send_outlined),
-            label: const Text('WhatsApp Ay Özeti Gönder'),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onPdf,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('PDF Rapor Al'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onWhatsapp,
+                  icon: const Icon(Icons.send_outlined),
+                  label: const Text('WhatsApp Özeti'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

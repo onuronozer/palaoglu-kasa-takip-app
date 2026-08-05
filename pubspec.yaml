@@ -25,6 +25,8 @@ dependencies:
   timezone: ^0.10.1
   share_intent_package: ^1.0.32
   web_socket_channel: ^3.0.3
+  pdf: ^3.12.0
+  printing: ^5.14.3
 
 dev_dependencies:
   flutter_test:
