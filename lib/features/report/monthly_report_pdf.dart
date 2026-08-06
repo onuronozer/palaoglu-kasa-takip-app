@@ -80,17 +80,9 @@ Future<Uint8List> buildKiraathaneMonthlyReportPdf({
         _summaryGrid(summary),
         pw.SizedBox(height: 14),
         _sectionTitle('Günlük Ciro Dökümü'),
-        _table(
-          headers: const ['Tarih', 'Ciro'],
-          rows: dailyCiro
-              .map((item) => [
-                    _dateLabel(item.date),
-                    MoneyUtils.format(item.amount),
-                  ])
-              .toList(),
-          totalLabel: 'Toplam Ciro',
+        _dailyCiroGrid(
+          rows: dailyCiro,
           totalValue: MoneyUtils.format(summary.monthlyCiro),
-          flexes: const [2, 1],
         ),
         pw.SizedBox(height: 12),
         _sectionTitle('Masraf Dökümü'),
@@ -356,6 +348,114 @@ pw.Widget _sectionTitle(String title) {
         fontSize: 10,
       ),
     ),
+  );
+}
+
+pw.Widget _dailyCiroGrid({
+  required List<_DailyTotal> rows,
+  required String totalValue,
+}) {
+  if (rows.isEmpty) {
+    return pw.Column(
+      children: [
+        _tableRow(const ['Kayıt yok', ''], const [2, 1]),
+        _tableRow(['Toplam Ciro', totalValue], const [2, 1], total: true),
+      ],
+    );
+  }
+
+  const columnCount = 3;
+  final rowGroups = <List<_DailyTotal>>[];
+  for (var index = 0; index < rows.length; index += columnCount) {
+    rowGroups.add(rows.skip(index).take(columnCount).toList());
+  }
+
+  return pw.Container(
+    decoration: pw.BoxDecoration(
+      border: pw.Border.all(color: _line, width: 0.5),
+    ),
+    child: pw.Column(
+      children: [
+        for (final group in rowGroups) _dailyCiroGridRow(group, columnCount),
+        pw.Container(
+          width: double.infinity,
+          padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+          decoration: const pw.BoxDecoration(color: _lightGold),
+          child: pw.Row(
+            children: [
+              pw.Expanded(
+                child: pw.Text(
+                  'Toplam Ciro',
+                  style: pw.TextStyle(
+                    fontSize: 8,
+                    fontWeight: pw.FontWeight.bold,
+                    color: _navy,
+                  ),
+                ),
+              ),
+              pw.Text(
+                totalValue,
+                style: pw.TextStyle(
+                  fontSize: 8,
+                  fontWeight: pw.FontWeight.bold,
+                  color: _navy,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+pw.Widget _dailyCiroGridRow(List<_DailyTotal> group, int columnCount) {
+  return pw.Row(
+    children: [
+      for (var index = 0; index < columnCount; index++)
+        pw.Expanded(
+          child: _dailyCiroGridCell(
+            index < group.length ? group[index] : null,
+            showRightBorder: index < columnCount - 1,
+          ),
+        ),
+    ],
+  );
+}
+
+pw.Widget _dailyCiroGridCell(
+  _DailyTotal? item, {
+  required bool showRightBorder,
+}) {
+  return pw.Container(
+    height: 20,
+    padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+    decoration: pw.BoxDecoration(
+      border: pw.Border(
+        right: showRightBorder
+            ? const pw.BorderSide(color: _line, width: 0.5)
+            : pw.BorderSide.none,
+        bottom: const pw.BorderSide(color: _line, width: 0.5),
+      ),
+    ),
+    child: item == null
+        ? pw.SizedBox.shrink()
+        : pw.Row(
+            children: [
+              pw.Text(
+                _dateLabel(item.date),
+                style: const pw.TextStyle(fontSize: 7, color: _muted),
+              ),
+              pw.Spacer(),
+              pw.Text(
+                MoneyUtils.format(item.amount),
+                style: pw.TextStyle(
+                  fontSize: 7.4,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
   );
 }
 
