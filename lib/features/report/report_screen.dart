@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:printing/printing.dart';
+import 'package:pdf/pdf.dart';
 
+import '../../core/pdf/pdf_file_saver.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/report_utils.dart';
@@ -105,18 +106,21 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
                           Future<void> openPdfReport() async {
                             try {
-                              await Printing.layoutPdf(
-                                name: 'palaoglu-kiraathane-$monthKey-rapor.pdf',
-                                onLayout: (format) =>
-                                    buildKiraathaneMonthlyReportPdf(
-                                  month: _selectedMonth,
-                                  monthLabel: monthLabel,
-                                  summary: summary,
-                                  transactions: transactions,
-                                  employeeSummaries: employeeSummaries,
-                                  debts: debts,
-                                  pageFormat: format,
-                                ),
+                              final filename =
+                                  'palaoglu-kiraathane-$monthKey-rapor.pdf';
+                              final pdfBytes =
+                                  await buildKiraathaneMonthlyReportPdf(
+                                month: _selectedMonth,
+                                monthLabel: monthLabel,
+                                summary: summary,
+                                transactions: transactions,
+                                employeeSummaries: employeeSummaries,
+                                debts: debts,
+                                pageFormat: PdfPageFormat.a4,
+                              );
+                              await savePdfFile(
+                                bytes: pdfBytes,
+                                filename: filename,
                               );
                             } catch (_) {
                               if (!context.mounted) {
