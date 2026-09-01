@@ -78,6 +78,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               entryType: state.pathParameters['type'] ?? 'ciro',
               initialMonthKey: state.uri.queryParameters['month'],
               initialDateKey: state.uri.queryParameters['date'],
+              initialAmountText: state.uri.queryParameters['amount'],
             ),
           );
         },

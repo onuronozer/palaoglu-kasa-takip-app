@@ -1,7 +1,7 @@
 # Palaoğlu Kasa Takip
 
 Flutter Web / PWA olarak hazırlanmış koyu temalı kasa takip uygulaması.
-Ana veri kaynağı Firebase Auth ve Cloud Firestore'dur. Google Sheet ve Apps Script kullanılmaz.
+Ana veri kaynağı Firebase Auth ve Cloud Firestore'dur. Google Sheet sadece e-tablo ciro kontrolünde okunur; kayıtların resmi kaynağı Firestore'dur.
 
 ## Dosya Yapısı
 

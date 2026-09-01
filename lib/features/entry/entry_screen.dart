@@ -21,12 +21,14 @@ class EntryScreen extends ConsumerStatefulWidget {
     required this.entryType,
     this.initialMonthKey,
     this.initialDateKey,
+    this.initialAmountText,
     super.key,
   });
 
   final String entryType;
   final String? initialMonthKey;
   final String? initialDateKey;
+  final String? initialAmountText;
 
   @override
   ConsumerState<EntryScreen> createState() => _EntryScreenState();
@@ -71,6 +73,10 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     }
     if (widget.entryType == TransactionTypes.komisyon) {
       _selectedEmployee = AppCategories.komisyon;
+    }
+    final initialAmount = widget.initialAmountText?.trim();
+    if (initialAmount != null && initialAmount.isNotEmpty) {
+      _amountController.text = initialAmount;
     }
   }
 

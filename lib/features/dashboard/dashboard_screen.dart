@@ -10,6 +10,7 @@ import '../../core/utils/money_utils.dart';
 import '../../core/utils/report_utils.dart';
 import '../../data/models/app_user.dart';
 import '../../data/models/transaction_model.dart';
+import '../../data/repositories/sheet_ciro_repository.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../auth/auth_controller.dart';
 import 'widgets/action_card.dart';
@@ -41,6 +42,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final appUser = ref.watch(currentAppUserProvider).valueOrNull;
     final monthKey = AppDateUtils.monthKey(_selectedMonth);
     final transactionsState = ref.watch(transactionsByMonthProvider(monthKey));
+    final sheetCiroState = ref.watch(sheetCiroByMonthProvider(monthKey));
 
     return Scaffold(
       body: SafeArea(
@@ -95,6 +97,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   transactions,
                                   _selectedMonth,
                                 ),
+                                sheetCiroByDate:
+                                    sheetCiroState.valueOrNull?.ciroByDate ??
+                                        const {},
+                                hasSheetSource:
+                                    sheetCiroState.valueOrNull?.hasSource ??
+                                        false,
+                                isSheetLoading: sheetCiroState.isLoading,
+                                hasSheetError: sheetCiroState.hasError,
                               ),
                               const SizedBox(height: 18),
                               _ActionGrid(
@@ -589,10 +599,18 @@ class _MissingCiroCard extends StatelessWidget {
   const _MissingCiroCard({
     required this.selectedMonth,
     required this.missingDates,
+    required this.sheetCiroByDate,
+    required this.hasSheetSource,
+    required this.isSheetLoading,
+    required this.hasSheetError,
   });
 
   final DateTime selectedMonth;
   final List<DateTime> missingDates;
+  final Map<String, double> sheetCiroByDate;
+  final bool hasSheetSource;
+  final bool isSheetLoading;
+  final bool hasSheetError;
 
   @override
   Widget build(BuildContext context) {
@@ -601,6 +619,10 @@ class _MissingCiroCard extends StatelessWidget {
     final currentMonth = DateTime(now.year, now.month);
     final isFutureMonth = month.isAfter(currentMonth);
     final hasMissing = missingDates.isNotEmpty;
+    final missingWithSheetCount = missingDates
+        .where(
+            (date) => sheetCiroByDate.containsKey(AppDateUtils.dateKey(date)))
+        .length;
     final color = hasMissing ? AppColors.expense : AppColors.income;
     final monthKey = AppDateUtils.monthKey(selectedMonth);
 
@@ -652,6 +674,10 @@ class _MissingCiroCard extends StatelessWidget {
                         selectedMonth: selectedMonth,
                         hasMissing: hasMissing,
                         isFutureMonth: isFutureMonth,
+                        hasSheetSource: hasSheetSource,
+                        isSheetLoading: isSheetLoading,
+                        hasSheetError: hasSheetError,
+                        missingWithSheetCount: missingWithSheetCount,
                       ),
                       style: const TextStyle(color: AppColors.mutedText),
                     ),
@@ -667,19 +693,94 @@ class _MissingCiroCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 for (final date in missingDates)
-                  OutlinedButton.icon(
-                    onPressed: () {
+                  _MissingCiroDateButton(
+                    date: date,
+                    sheetAmount: sheetCiroByDate[AppDateUtils.dateKey(date)],
+                    onTap: () {
+                      final dateKey = AppDateUtils.dateKey(date);
+                      final amount = sheetCiroByDate[dateKey];
+                      final amountQuery = amount == null
+                          ? ''
+                          : '&amount=${Uri.encodeComponent(_amountQueryText(amount))}';
                       context.push(
-                        '/entry/ciro?month=$monthKey&date=${AppDateUtils.dateKey(date)}',
+                        '/entry/ciro?month=$monthKey&date=$dateKey$amountQuery',
                       );
                     },
-                    icon: const Icon(Icons.add_chart, size: 18),
-                    label: Text(_shortDayLabel(date)),
                   ),
               ],
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _MissingCiroDateButton extends StatelessWidget {
+  const _MissingCiroDateButton({
+    required this.date,
+    required this.sheetAmount,
+    required this.onTap,
+  });
+
+  final DateTime date;
+  final double? sheetAmount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSheetAmount = sheetAmount != null && sheetAmount! > 0;
+    final color = hasSheetAmount ? AppColors.turquoise : AppColors.expense;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: hasSheetAmount ? 0.14 : 0.06),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.38)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                hasSheetAmount
+                    ? Icons.cloud_done_outlined
+                    : Icons.add_chart_outlined,
+                color: color,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _shortDayLabel(date),
+                    style: const TextStyle(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (hasSheetAmount)
+                    Text(
+                      'E-tabloda var: ${MoneyUtils.format(sheetAmount!)}',
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1301,15 +1402,38 @@ String _missingCiroSubtitle({
   required DateTime selectedMonth,
   required bool hasMissing,
   required bool isFutureMonth,
+  required bool hasSheetSource,
+  required bool isSheetLoading,
+  required bool hasSheetError,
+  required int missingWithSheetCount,
 }) {
   final label = AppDateUtils.monthLabel(selectedMonth);
   if (isFutureMonth) {
     return '$label için gün gelince eksik ciro takibi başlar.';
   }
   if (hasMissing) {
+    if (isSheetLoading) {
+      return '$label içinde eksik günler var, e-tablo kontrol ediliyor.';
+    }
+    if (missingWithSheetCount > 0) {
+      return '$missingWithSheetCount eksik gün e-tabloda görünüyor.';
+    }
+    if (hasSheetError) {
+      return '$label içinde eksik günler var, e-tablo okunamadı.';
+    }
+    if (hasSheetSource) {
+      return '$label içinde eksik günler var, e-tabloda karşılığı bulunamadı.';
+    }
     return '$label içinde düne kadar eksik görünen günler';
   }
   return '$label için düne kadar tüm cirolar girilmiş görünüyor.';
+}
+
+String _amountQueryText(double amount) {
+  if (amount == amount.roundToDouble()) {
+    return amount.toStringAsFixed(0);
+  }
+  return amount.toStringAsFixed(2);
 }
 
 int _defaultDayForMonth(DateTime month) {
