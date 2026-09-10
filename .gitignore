@@ -6,6 +6,11 @@
 .packages
 build/
 coverage/
+web/data/sheet-ciro.json
+scripts/__pycache__/
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
 
 # Firebase generated/local
 .firebase/

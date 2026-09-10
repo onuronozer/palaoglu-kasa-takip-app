@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../core/constants/farm_categories.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
+import '../../core/utils/bulk_save_utils.dart';
 import '../../core/utils/money_utils.dart';
 import '../../data/models/farm_expense_model.dart';
 import '../../data/models/farm_field_model.dart';
@@ -209,6 +211,7 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
   }
 
   void _changeMonth(DateTime month) {
+    if (_isSaving || _isSavingDesktop) return;
     setState(() {
       _selectedMonth = month;
       final maxDay = AppDateUtils.daysInMonth(month);
@@ -271,6 +274,7 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
   }
 
   Future<void> _save() async {
+    if (_isSaving || _isSavingDesktop) return;
     final repository = ref.read(farmRepositoryProvider);
     final validDrafts = <_FarmBulkDraft>[];
     final apricotOptions = _activeApricotOptions();
@@ -294,70 +298,74 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
 
     setState(() => _isSaving = true);
     try {
-      for (final draft in validDrafts) {
-        final date = DateTime(
-          _selectedMonth.year,
-          _selectedMonth.month,
-          draft.day,
-        );
-        final dateKey = AppDateUtils.dateKey(date);
+      final result = await saveBulkRows(validDrafts,
+          canContinue: () => mounted,
+          save: (draft) async {
+            final date = DateTime(
+              _selectedMonth.year,
+              _selectedMonth.month,
+              draft.day,
+            );
+            final dateKey = AppDateUtils.dateKey(date);
 
-        if (draft.type == _FarmBulkType.sale) {
-          final kg = MoneyUtils.parse(draft.kgController.text);
-          final price = MoneyUtils.parse(draft.priceController.text);
-          await repository.addSale(
-            FarmSaleModel(
-              id: '',
-              merchantId: draft.merchantId!,
-              date: dateKey,
-              productName: draft.product,
-              productVariety: draft.product == FarmProducts.kayisi
-                  ? draft.variety ?? ''
-                  : '',
-              amountKg: kg,
-              priceTl: price,
-              totalAmount: kg * price,
-              seasonYear: _selectedMonth.year,
-              fieldId: draft.fieldId ?? '',
-            ),
-          );
-        } else if (draft.type == _FarmBulkType.payment) {
-          await repository.addPayment(
-            FarmPaymentModel(
-              id: '',
-              merchantId: draft.merchantId!,
-              date: dateKey,
-              amount: MoneyUtils.parse(draft.amountController.text),
-              seasonYear: _selectedMonth.year,
-            ),
-          );
-        } else {
-          await repository.addExpense(
-            FarmExpenseModel(
-              id: '',
-              date: dateKey,
-              category: draft.expenseCategory,
-              amount: MoneyUtils.parse(draft.amountController.text),
-              description: draft.descriptionController.text.trim(),
-              seasonYear: _selectedMonth.year,
-              fieldId: draft.fieldId ?? '',
-            ),
-          );
-        }
-      }
+            if (draft.type == _FarmBulkType.sale) {
+              final kg = MoneyUtils.parse(draft.kgController.text);
+              final price = MoneyUtils.parse(draft.priceController.text);
+              await repository.addSale(
+                FarmSaleModel(
+                  id: draft.recordId,
+                  merchantId: draft.merchantId!,
+                  date: dateKey,
+                  productName: draft.product,
+                  productVariety: draft.product == FarmProducts.kayisi
+                      ? draft.variety ?? ''
+                      : '',
+                  amountKg: kg,
+                  priceTl: price,
+                  totalAmount: kg * price,
+                  seasonYear: _selectedMonth.year,
+                  fieldId: draft.fieldId ?? '',
+                ),
+              );
+            } else if (draft.type == _FarmBulkType.payment) {
+              await repository.addPayment(
+                FarmPaymentModel(
+                  id: draft.recordId,
+                  merchantId: draft.merchantId!,
+                  date: dateKey,
+                  amount: MoneyUtils.parse(draft.amountController.text),
+                  seasonYear: _selectedMonth.year,
+                ),
+              );
+            } else {
+              await repository.addExpense(
+                FarmExpenseModel(
+                  id: draft.recordId,
+                  date: dateKey,
+                  category: draft.expenseCategory,
+                  amount: MoneyUtils.parse(draft.amountController.text),
+                  description: draft.descriptionController.text.trim(),
+                  seasonYear: _selectedMonth.year,
+                  fieldId: draft.fieldId ?? '',
+                ),
+              );
+            }
+          });
 
       if (!mounted) {
         return;
       }
       setState(() {
-        for (final draft in _drafts) {
+        for (final draft in result.saved) {
+          _drafts.remove(draft);
           draft.dispose();
         }
-        _drafts
-          ..clear()
-          ..add(_FarmBulkDraft(day: _defaultDay()));
+        if (_drafts.isEmpty) _drafts.add(_FarmBulkDraft(day: _defaultDay()));
       });
-      _showSnack('${validDrafts.length} kayıt eklendi.');
+      final failedRows =
+          result.failed.keys.map((row) => _drafts.indexOf(row) + 1).join(', ');
+      _showSnack(
+          '${result.saved.length} kayıt eklendi.${result.failed.isEmpty ? '' : ' Kaydedilemeyen satırlar: $failedRows. Tekrar deneyin.'}');
     } catch (_) {
       _showSnack(
         'Toplu kayıt tamamlanamadı. İnternet bağlantısını kontrol edin.',
@@ -370,6 +378,7 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
   }
 
   Future<void> _saveDesktop() async {
+    if (_isSaving || _isSavingDesktop) return;
     final repository = ref.read(farmRepositoryProvider);
     final merchants =
         ref.read(merchantsProvider).valueOrNull ?? const <MerchantModel>[];
@@ -402,102 +411,110 @@ class _FarmBulkEntryScreenState extends ConsumerState<FarmBulkEntryScreen> {
 
     setState(() => _isSavingDesktop = true);
     try {
-      for (final draft in validDrafts) {
-        final date = DateTime(
-          _selectedMonth.year,
-          _selectedMonth.month,
-          draft.day,
-        );
-        final dateKey = AppDateUtils.dateKey(date);
+      final result = await saveBulkRows(validDrafts,
+          canContinue: () => mounted,
+          save: (draft) async {
+            final date = DateTime(
+              _selectedMonth.year,
+              _selectedMonth.month,
+              draft.day,
+            );
+            final dateKey = AppDateUtils.dateKey(date);
 
-        switch (draft.type) {
-          case _FarmDesktopType.sale:
-            final kg = MoneyUtils.parse(draft.kgController.text);
-            final price = MoneyUtils.parse(draft.priceController.text);
-            await repository.addSale(
-              FarmSaleModel(
-                id: '',
-                merchantId: draft.merchantId!,
-                date: dateKey,
-                productName: draft.product,
-                productVariety: draft.product == FarmProducts.kayisi
-                    ? draft.variety ?? ''
-                    : '',
-                amountKg: kg,
-                priceTl: price,
-                totalAmount: kg * price,
-                seasonYear: _selectedMonth.year,
-                fieldId: draft.fieldId ?? '',
-              ),
-            );
-            break;
-          case _FarmDesktopType.payment:
-            await repository.addPayment(
-              FarmPaymentModel(
-                id: '',
-                merchantId: draft.merchantId!,
-                date: dateKey,
-                amount: MoneyUtils.parse(draft.amountController.text),
-                seasonYear: _selectedMonth.year,
-              ),
-            );
-            break;
-          case _FarmDesktopType.expense:
-            await repository.addExpense(
-              FarmExpenseModel(
-                id: '',
-                date: dateKey,
-                category: draft.expenseCategory,
-                amount: MoneyUtils.parse(draft.amountController.text),
-                description: draft.descriptionController.text.trim(),
-                seasonYear: _selectedMonth.year,
-                fieldId: draft.fieldId ?? '',
-              ),
-            );
-            break;
-          case _FarmDesktopType.workerWork:
-            final dayCount = MoneyUtils.parse(draft.dayCountController.text);
-            final dailyWage = MoneyUtils.parse(draft.dailyWageController.text);
-            await repository.addFarmWorkerWork(
-              FarmWorkerWorkModel(
-                id: '',
-                workerId: draft.workerId!,
-                date: dateKey,
-                dayCount: dayCount,
-                dailyWage: dailyWage,
-                totalEarned: dayCount * dailyWage,
-                description: draft.descriptionController.text.trim(),
-                seasonYear: _selectedMonth.year,
-                fieldId: draft.fieldId ?? '',
-              ),
-            );
-            break;
-          case _FarmDesktopType.workerPayment:
-            await repository.addFarmWorkerPayment(
-              FarmWorkerPaymentModel(
-                id: '',
-                workerId: draft.workerId!,
-                date: dateKey,
-                amount: MoneyUtils.parse(draft.amountController.text),
-                description: draft.descriptionController.text.trim(),
-                seasonYear: _selectedMonth.year,
-              ),
-            );
-            break;
-        }
-      }
+            switch (draft.type) {
+              case _FarmDesktopType.sale:
+                final kg = MoneyUtils.parse(draft.kgController.text);
+                final price = MoneyUtils.parse(draft.priceController.text);
+                await repository.addSale(
+                  FarmSaleModel(
+                    id: draft.recordId,
+                    merchantId: draft.merchantId!,
+                    date: dateKey,
+                    productName: draft.product,
+                    productVariety: draft.product == FarmProducts.kayisi
+                        ? draft.variety ?? ''
+                        : '',
+                    amountKg: kg,
+                    priceTl: price,
+                    totalAmount: kg * price,
+                    seasonYear: _selectedMonth.year,
+                    fieldId: draft.fieldId ?? '',
+                  ),
+                );
+                break;
+              case _FarmDesktopType.payment:
+                await repository.addPayment(
+                  FarmPaymentModel(
+                    id: draft.recordId,
+                    merchantId: draft.merchantId!,
+                    date: dateKey,
+                    amount: MoneyUtils.parse(draft.amountController.text),
+                    seasonYear: _selectedMonth.year,
+                  ),
+                );
+                break;
+              case _FarmDesktopType.expense:
+                await repository.addExpense(
+                  FarmExpenseModel(
+                    id: draft.recordId,
+                    date: dateKey,
+                    category: draft.expenseCategory,
+                    amount: MoneyUtils.parse(draft.amountController.text),
+                    description: draft.descriptionController.text.trim(),
+                    seasonYear: _selectedMonth.year,
+                    fieldId: draft.fieldId ?? '',
+                  ),
+                );
+                break;
+              case _FarmDesktopType.workerWork:
+                final dayCount =
+                    MoneyUtils.parse(draft.dayCountController.text);
+                final dailyWage =
+                    MoneyUtils.parse(draft.dailyWageController.text);
+                await repository.addFarmWorkerWork(
+                  FarmWorkerWorkModel(
+                    id: draft.recordId,
+                    workerId: draft.workerId!,
+                    date: dateKey,
+                    dayCount: dayCount,
+                    dailyWage: dailyWage,
+                    totalEarned: dayCount * dailyWage,
+                    description: draft.descriptionController.text.trim(),
+                    seasonYear: _selectedMonth.year,
+                    fieldId: draft.fieldId ?? '',
+                  ),
+                );
+                break;
+              case _FarmDesktopType.workerPayment:
+                await repository.addFarmWorkerPayment(
+                  FarmWorkerPaymentModel(
+                    id: draft.recordId,
+                    workerId: draft.workerId!,
+                    date: dateKey,
+                    amount: MoneyUtils.parse(draft.amountController.text),
+                    description: draft.descriptionController.text.trim(),
+                    seasonYear: _selectedMonth.year,
+                  ),
+                );
+                break;
+            }
+          });
 
       if (!mounted) {
         return;
       }
       setState(() {
-        for (final draft in _desktopDrafts) {
+        for (final draft in result.saved) {
+          _desktopDrafts.remove(draft);
           draft.dispose();
         }
-        _desktopDrafts.clear();
-        _addDesktopRows(10);
+        if (_desktopDrafts.isEmpty) _addDesktopRows(10);
       });
-      _showSnack('${validDrafts.length} kayıt eklendi.');
+      final failedRows = result.failed.keys
+          .map((row) => _desktopDrafts.indexOf(row) + 1)
+          .join(', ');
+      _showSnack(
+          '${result.saved.length} kayıt eklendi.${result.failed.isEmpty ? '' : ' Kaydedilemeyen satırlar: $failedRows. Tekrar deneyin.'}');
     } catch (_) {
       _showSnack('Bilgisayar hızlı giriş kayıtları kaydedilemedi.');
     } finally {
@@ -1680,6 +1697,7 @@ class _StateCard extends StatelessWidget {
 
 class _FarmDesktopDraft {
   _FarmDesktopDraft({required this.day});
+  final String recordId = const Uuid().v4();
 
   int day;
   String type = _FarmDesktopType.sale;
@@ -1885,6 +1903,7 @@ class _FarmDesktopType {
 
 class _FarmBulkDraft {
   _FarmBulkDraft({required this.day});
+  final String recordId = const Uuid().v4();
 
   int day;
   String type = _FarmBulkType.sale;

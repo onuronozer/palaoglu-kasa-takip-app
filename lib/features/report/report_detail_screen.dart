@@ -532,6 +532,15 @@ List<_CalculationLine> _calculationLines(
           negative: true,
         ),
         _CalculationLine(
+          label: 'Verilen Borç',
+          amount: summary.debtGiven,
+          negative: true,
+        ),
+        _CalculationLine(
+          label: 'Alınan Borç Ödemesi',
+          amount: summary.debtPaid,
+        ),
+        _CalculationLine(
           label: 'Kasa Nakit',
           amount: summary.cashOnHand,
           result: true,

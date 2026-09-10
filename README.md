@@ -171,6 +171,9 @@ Not: Firestore Console'da `createdAt` ve `updatedAt` alanlarını Timestamp tipi
   "id": "bolat",
   "name": "Bolat",
   "salary": 34000,
+  "salaryHistory": {
+    "2026-05": 34000
+  },
   "active": true,
   "createdAt": "Timestamp",
   "updatedAt": "Timestamp",
@@ -296,7 +299,7 @@ Hesaplama:
 - Ortağa Ödenen: İşçi Ödemesi ekranında İşletme Ortağı seçilerek girilen ara/tam ödemeleri toplar.
 - Ortak Kalan: işletme ortağı hakedişinden ödenen tutarı düşer.
 - Kredi Kartı: kârdan düşer ama kasa nakitten düşmez.
-- Kasa Nakit: cirodan sadece kasadan ödenen masraf, işçi ödemesi ve işletme ortağı ödemesini, ayrıca bankaya yatanı düşer. Kredi kartı ve şahsi ödemeler kasa nakitten düşmez.
+- Kasa Nakit: cirodan kasadan ödenen masraf, işçi ödemesi, işletme ortağı ödemesi, bankaya yatan ve kasadan verilen borç düşer; alınan borç ödemesi eklenir. Kredi kartı ve şahsi ödemeler kasa nakitten düşmez.
 
 Örnek:
 
@@ -387,3 +390,31 @@ Tarım özellikleri:
 - Tarım raporu: sezonluk satış cirosu, tahsilat, kalan alacak, net durum, ürün satışları, gider kategorileri, tarla analizi, işçi hakedişleri ve tüccar cari dökümü.
 
 Firebase Rules yayınlanırken `firestore.rules` içindeki tarım koleksiyon kurallarının Firebase Console > Firestore > Rules ekranına eklenmesi gerekir.
+
+## E-Tablo Ciro Kontrolü
+
+- GitHub Actions e-tabloyu her gün 09:00 ve 21:00'de kontrol eder.
+- `Ekim 2026`, `Kasım 2026` gibi yeni aylık sekmeler kod güncellemesi olmadan otomatik bulunur.
+- A sütununda `Gün` veya `Tarih`, B sütununda `Ciro` veya `Toplam Ciro` başlığı olmalıdır.
+- Sekme adıyla satır tarihleri uyuşmuyorsa o ayın verisi güvenlik amacıyla kullanılmaz.
+- Firestore'a otomatik kayıt yapılmaz; e-tabloda bulunan eksik ciro ana ekranda onay için gösterilir.
+
+## iOS Paylaşım Kontrolü
+
+- Runner ve ShareExtension hedeflerinde aynı App Group kullanılmalıdır: `group.com.palaoglu.kasatakip`.
+- Xcode'da Runner ve ShareExtension için Signing & Capabilities bölümünde App Groups açık olmalıdır.
+- TestFlight arşivinden önce `flutter pub get` ve `pod install` çalıştırılmalıdır.
+- WhatsApp görselinde Paylaş > Palaoğlu Yönetim seçildiğinde görsel Fiş Aktar ekranında açılır.
+
+## Android Yayın İmzası
+
+Play Store yayını için `android/key.properties` dosyası yerel olarak oluşturulur:
+
+```properties
+storePassword=...
+keyPassword=...
+keyAlias=upload
+storeFile=upload-keystore.jks
+```
+
+`upload-keystore.jks` dosyası `android/app` içine konur. Bu iki imza dosyası GitHub'a gönderilmez. Dosyalar yoksa proje test kurulumu için debug imzalı APK üretmeye devam eder.

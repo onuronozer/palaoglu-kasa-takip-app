@@ -58,7 +58,9 @@ class FinancialSummary {
       cashPaidMasraf -
       cashPaidEmployees -
       cashPaidCommission -
-      bankDeposits;
+      bankDeposits -
+      debtGiven +
+      debtPaid;
   double get remainingDebt => debtGiven - debtPaid;
   double get personalPaidTotal =>
       personalPaidMasraf + personalPaidEmployees + personalPaidCommission;
@@ -270,8 +272,9 @@ class ReportUtils {
 
   static List<EmployeeSalarySummary> employeeSalarySummaries(
     List<EmployeeModel> employees,
-    List<TransactionModel> transactions,
-  ) {
+    List<TransactionModel> transactions, {
+    required String monthKey,
+  }) {
     final paidByEmployee = <String, double>{};
 
     for (final transaction in transactions) {
@@ -297,7 +300,7 @@ class ReportUtils {
       summaries.add(
         EmployeeSalarySummary(
           name: employee.name,
-          salary: employee.salary,
+          salary: employee.salaryForMonth(monthKey),
           paid: paid,
           active: employee.active,
         ),

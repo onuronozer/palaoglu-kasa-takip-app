@@ -25,7 +25,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
+    with WidgetsBindingObserver {
   late DateTime _selectedMonth;
   String _filter = 'all';
   bool _isReadingOcr = false;
@@ -33,8 +34,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final now = DateTime.now();
     _selectedMonth = DateTime(now.year, now.month);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(
+        sheetCiroByMonthProvider(AppDateUtils.monthKey(_selectedMonth)),
+      );
+    }
   }
 
   @override
@@ -105,6 +122,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                         false,
                                 isSheetLoading: sheetCiroState.isLoading,
                                 hasSheetError: sheetCiroState.hasError,
+                                sheetCheckedAt:
+                                    sheetCiroState.valueOrNull?.checkedAt,
                               ),
                               const SizedBox(height: 18),
                               _ActionGrid(
@@ -603,6 +622,7 @@ class _MissingCiroCard extends StatelessWidget {
     required this.hasSheetSource,
     required this.isSheetLoading,
     required this.hasSheetError,
+    this.sheetCheckedAt,
   });
 
   final DateTime selectedMonth;
@@ -611,6 +631,7 @@ class _MissingCiroCard extends StatelessWidget {
   final bool hasSheetSource;
   final bool isSheetLoading;
   final bool hasSheetError;
+  final DateTime? sheetCheckedAt;
 
   @override
   Widget build(BuildContext context) {
@@ -686,6 +707,17 @@ class _MissingCiroCard extends StatelessWidget {
               ),
             ],
           ),
+          if (hasSheetSource && sheetCheckedAt != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _sheetCheckLabel(sheetCheckedAt!),
+              style: const TextStyle(
+                color: AppColors.mutedText,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
           if (hasMissing) ...[
             const SizedBox(height: 14),
             Wrap(
@@ -1434,6 +1466,15 @@ String _amountQueryText(double amount) {
     return amount.toStringAsFixed(0);
   }
   return amount.toStringAsFixed(2);
+}
+
+String _sheetCheckLabel(DateTime value) {
+  final local = value.toLocal();
+  final date = AppDateUtils.dateKey(local);
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  final stale = DateTime.now().difference(local) >= const Duration(hours: 30);
+  return 'E-tablo kontrolü: $date $hour:$minute${stale ? ' · Güncel değil' : ''}';
 }
 
 int _defaultDayForMonth(DateTime month) {

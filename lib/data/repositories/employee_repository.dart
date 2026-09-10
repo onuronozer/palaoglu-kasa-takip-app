@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/constants/categories.dart';
+import '../../core/utils/date_utils.dart';
 import '../models/app_user.dart';
 import '../models/employee_model.dart';
 
@@ -53,6 +54,7 @@ class EmployeeRepository {
       id: id,
       name: name,
       salary: salary,
+      salaryHistory: {AppDateUtils.monthKey(DateTime.now()): salary},
       active: true,
       updatedByUid: updatedBy.uid,
       updatedByName: updatedBy.displayName,
@@ -69,13 +71,21 @@ class EmployeeRepository {
     required double salary,
     required AppUser updatedBy,
   }) async {
-    await updateEmployee(
-      employee.copyWith(
-        salary: salary,
-        updatedByUid: updatedBy.uid,
-        updatedByName: updatedBy.displayName,
-      ),
-    );
+    final monthKey = AppDateUtils.monthKey(DateTime.now());
+    final doc = _employees.doc(employee.id);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(doc);
+      if (!snapshot.exists) throw StateError('Personel bulunamadı.');
+      final current = EmployeeModel.fromDoc(snapshot);
+      final updated = current.withSalaryFrom(monthKey, salary);
+      transaction.update(doc, {
+        'salary': salary,
+        'salaryHistory': updated.salaryHistory,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'updatedByUid': updatedBy.uid,
+        'updatedByName': updatedBy.displayName,
+      });
+    });
   }
 
   Future<void> setActive({
@@ -83,13 +93,12 @@ class EmployeeRepository {
     required bool active,
     required AppUser updatedBy,
   }) async {
-    await updateEmployee(
-      employee.copyWith(
-        active: active,
-        updatedByUid: updatedBy.uid,
-        updatedByName: updatedBy.displayName,
-      ),
-    );
+    await _employees.doc(employee.id).update({
+      'active': active,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedByUid': updatedBy.uid,
+      'updatedByName': updatedBy.displayName,
+    });
   }
 
   Future<void> ensureDefaultEmployees(AppUser updatedBy) async {

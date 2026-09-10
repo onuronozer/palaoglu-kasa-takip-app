@@ -499,6 +499,7 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
   }
 
   Future<void> _save(AppUser appUser) async {
+    if (_saving) return;
     final date = _selectedDate ?? DateTime.now();
     final transactions = <TransactionModel>[];
     final errors = <String>[];
@@ -561,9 +562,15 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
         _transaction(
           appUser: appUser,
           date: date,
-          type: TransactionTypes.isci,
-          category: AppCategories.isci,
-          person: draft.selectedEmployee!,
+          type: draft.selectedEmployee == AppCategories.komisyon
+              ? TransactionTypes.komisyon
+              : TransactionTypes.isci,
+          category: draft.selectedEmployee == AppCategories.komisyon
+              ? AppCategories.komisyon
+              : AppCategories.isci,
+          person: draft.selectedEmployee == AppCategories.komisyon
+              ? ''
+              : draft.selectedEmployee!,
           amount: amount,
           description: draft.originalName.trim().isEmpty
               ? 'Fiş aktarımı'
@@ -614,26 +621,31 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
       return;
     }
 
-    final confirmed = await _confirmSameDayRecords(date, transactions);
-    if (!confirmed) {
-      return;
-    }
-
     setState(() => _saving = true);
+    var saved = false;
     try {
+      final confirmed = await _confirmSameDayRecords(date, transactions);
+      if (!confirmed || !mounted) return;
       await ref
           .read(transactionRepositoryProvider)
           .addTransactions(transactions);
       if (!mounted) {
         return;
       }
-      _showSnack('${transactions.length} kayıt eklendi.');
-      context.pop();
+      saved = true;
     } catch (_) {
       _showSnack('Kayıtlar eklenemedi.');
     } finally {
       if (mounted) {
         setState(() => _saving = false);
+      }
+    }
+    if (saved && mounted) {
+      _showSnack('${transactions.length} kayıt eklendi.');
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/kiraathane');
       }
     }
   }
@@ -652,7 +664,10 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
     try {
       existing = await ref.read(transactionsByMonthProvider(monthKey).future);
     } catch (_) {
-      return true;
+      if (mounted) {
+        _showSnack('Aynı gün kayıtları kontrol edilemedi. Tekrar deneyin.');
+      }
+      return false;
     }
 
     final sameDay =
@@ -763,6 +778,9 @@ class _AiReceiptScreenState extends ConsumerState<AiReceiptScreen> {
     final normalized = _normalizeText(name);
     if (normalized.isEmpty) {
       return null;
+    }
+    if (normalized == _normalizeText(AppCategories.komisyon)) {
+      return AppCategories.komisyon;
     }
     for (final employee in employees) {
       final employeeName = _normalizeText(employee.name);
@@ -1274,6 +1292,10 @@ class _WorkerDraftCardState extends State<_WorkerDraftCard> {
             initialValue: draft.selectedEmployee,
             decoration: const InputDecoration(labelText: 'Personel'),
             items: [
+              const DropdownMenuItem(
+                value: AppCategories.komisyon,
+                child: Text(AppCategories.komisyon),
+              ),
               for (final employee in widget.employees)
                 DropdownMenuItem(
                     value: employee.name, child: Text(employee.name)),

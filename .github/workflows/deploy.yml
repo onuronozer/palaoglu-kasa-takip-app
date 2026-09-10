@@ -5,6 +5,8 @@ on:
     branches:
       - main
   workflow_dispatch:
+  schedule:
+    - cron: '0 6,18 * * *'
 
 permissions:
   contents: read
@@ -29,6 +31,15 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Refresh monthly sheet revenue
+        run: python3 scripts/sync_sheet_ciro.py --allow-stale
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        run: flutter test
 
       - name: Build web
         run: flutter build web --release --base-href "/palaoglu-kasa-takip-app/" --pwa-strategy=none

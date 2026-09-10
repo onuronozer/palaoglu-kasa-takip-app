@@ -233,7 +233,7 @@ class _FarmExpenseScreenState extends ConsumerState<FarmExpenseScreen> {
                         options: FarmExpenseCategories.all,
                         selected: category,
                         onChanged: (value) =>
-                            setDialogState(() => category = value ?? category),
+                            setDialogState(() => category = value),
                       ),
                       const SizedBox(height: 12),
                       _FieldDropdown(

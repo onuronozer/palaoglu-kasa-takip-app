@@ -592,6 +592,8 @@ pw.Widget _cashControl(FinancialSummary summary) {
     ['Kasadan İşçi', '-${MoneyUtils.format(summary.cashPaidEmployees)}'],
     ['Kasadan Ortağa', '-${MoneyUtils.format(summary.cashPaidCommission)}'],
     ['Bankaya Yatan', '-${MoneyUtils.format(summary.bankDeposits)}'],
+    ['Verilen Borç', '-${MoneyUtils.format(summary.debtGiven)}'],
+    ['Alınan Borç Ödemesi', '+${MoneyUtils.format(summary.debtPaid)}'],
     ['Beklenen Kasa Nakit', MoneyUtils.format(summary.cashOnHand)],
   ];
 

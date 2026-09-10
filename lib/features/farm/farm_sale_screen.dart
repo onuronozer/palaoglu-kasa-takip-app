@@ -121,9 +121,6 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
                     options: FarmProducts.all,
                     selected: _product,
                     onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
                       setState(() {
                         _product = value;
                         _variety = value == FarmProducts.kayisi
@@ -324,9 +321,6 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
                         options: FarmProducts.all,
                         selected: product,
                         onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
                           setDialogState(() {
                             product = value;
                             variety = value == FarmProducts.kayisi
@@ -344,7 +338,7 @@ class _FarmSaleScreenState extends ConsumerState<FarmSaleScreen> {
                           options: apricotOptions,
                           selected: selectedVariety,
                           onChanged: (value) =>
-                              setDialogState(() => variety = value ?? ''),
+                              setDialogState(() => variety = value),
                         ),
                       ],
                       const SizedBox(height: 12),

@@ -101,6 +101,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                               ReportUtils.employeeSalarySummaries(
                             employees,
                             transactions,
+                            monthKey: monthKey,
                           );
                           final debts = ReportUtils.debtByPerson(transactions);
 

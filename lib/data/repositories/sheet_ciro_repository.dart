@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -6,170 +7,93 @@ import 'package:http/http.dart' as http;
 import '../../core/utils/date_utils.dart';
 import '../models/sheet_ciro_snapshot.dart';
 
+final sheetCiroRepositoryProvider = Provider<SheetCiroRepository>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return SheetCiroRepository(client);
+});
+
 final sheetCiroByMonthProvider =
     FutureProvider.autoDispose.family<SheetCiroSnapshot, String>(
   (ref, monthKey) {
-    return SheetCiroRepository().fetchByMonth(monthKey);
+    final refresh = Timer(const Duration(minutes: 15), ref.invalidateSelf);
+    ref.onDispose(refresh.cancel);
+    return ref.watch(sheetCiroRepositoryProvider).fetchByMonth(monthKey);
   },
 );
 
 class SheetCiroRepository {
-  static const _spreadsheetId = '1W6b9GxO6g-krIn_pXBidJpxhrPQypReLjocA3jq4bRQ';
+  SheetCiroRepository(this._client, {Uri? snapshotUri})
+      : _snapshotUri = snapshotUri ??
+            Uri.parse(
+              'https://onuronozer.github.io/'
+              'palaoglu-kasa-takip-app/data/sheet-ciro.json',
+            );
 
-  static const _gidsByMonth = {
-    '2026-07': '1614156150',
-    '2026-08': '1429067376',
-  };
+  static const spreadsheetId = '1W6b9GxO6g-krIn_pXBidJpxhrPQypReLjocA3jq4bRQ';
+
+  final http.Client _client;
+  final Uri _snapshotUri;
 
   Future<SheetCiroSnapshot> fetchByMonth(String monthKey) async {
-    final gid = _gidsByMonth[monthKey];
-    if (gid == null) {
-      return SheetCiroSnapshot.noSource(monthKey);
-    }
-
-    final uri = Uri.https(
-      'docs.google.com',
-      '/spreadsheets/d/$_spreadsheetId/export',
-      {
-        'format': 'csv',
-        'gid': gid,
+    final uri = _snapshotUri.replace(
+      queryParameters: {
+        ..._snapshotUri.queryParameters,
         'v': DateTime.now().millisecondsSinceEpoch.toString(),
       },
     );
-
-    final response = await http.get(uri).timeout(const Duration(seconds: 12));
+    final response =
+        await _client.get(uri).timeout(const Duration(seconds: 15));
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError('E-tablo okunamadı.');
+    }
+    return parseSnapshot(response.body, monthKey);
+  }
+
+  static SheetCiroSnapshot parseSnapshot(String body, String monthKey) {
+    final decoded = jsonDecode(body);
+    if (decoded is! Map<String, dynamic> ||
+        decoded['version'] != 1 ||
+        decoded['spreadsheetId'] != spreadsheetId) {
+      throw const FormatException('E-tablo veri biçimi geçersiz.');
+    }
+
+    final checkedAt = DateTime.tryParse(decoded['checkedAt']?.toString() ?? '');
+    final months = decoded['months'];
+    if (checkedAt == null || months is! Map<String, dynamic>) {
+      throw const FormatException('E-tablo kontrol bilgisi eksik.');
+    }
+
+    final month = months[monthKey];
+    if (month == null) {
+      return SheetCiroSnapshot.noSource(monthKey, checkedAt: checkedAt);
+    }
+    if (month is! Map<String, dynamic> ||
+        month['ciroByDate'] is! Map<String, dynamic> ||
+        (month['invalidDateCount'] as num? ?? 0) > 0) {
+      throw const FormatException('Aylık e-tablo verileri doğrulanamadı.');
+    }
+
+    final ciroByDate = <String, double>{};
+    for (final entry in (month['ciroByDate'] as Map<String, dynamic>).entries) {
+      final date = DateTime.tryParse(entry.key);
+      final value = entry.value;
+      if (date == null ||
+          value is! num ||
+          !value.isFinite ||
+          value <= 0 ||
+          !entry.key.startsWith(monthKey) ||
+          AppDateUtils.dateKey(date) != entry.key) {
+        throw const FormatException('E-tablo satırlarından biri geçersiz.');
+      }
+      ciroByDate[entry.key] = value.toDouble();
     }
 
     return SheetCiroSnapshot(
       monthKey: monthKey,
       hasSource: true,
-      ciroByDate: _extractCiroByDate(response.body, monthKey),
+      ciroByDate: ciroByDate,
+      checkedAt: checkedAt,
     );
   }
-
-  Map<String, double> _extractCiroByDate(String csvText, String monthKey) {
-    final rows = _parseCsv(csvText);
-    if (rows.length < 2) {
-      return const {};
-    }
-
-    final ciroByDate = <String, double>{};
-    for (final row in rows.skip(1)) {
-      if (row.length < 2) {
-        continue;
-      }
-      final dateKey = _parseDateKey(row[0]);
-      if (dateKey == null || !dateKey.startsWith(monthKey)) {
-        continue;
-      }
-      final amount = _parseSheetNumber(row[1]);
-      if (amount <= 0) {
-        continue;
-      }
-      ciroByDate[dateKey] = amount;
-    }
-
-    return ciroByDate;
-  }
-}
-
-List<List<String>> _parseCsv(String text) {
-  final rows = <List<String>>[];
-  var row = <String>[];
-  final cell = StringBuffer();
-  var inQuotes = false;
-
-  for (var index = 0; index < text.length; index++) {
-    final char = text[index];
-    final next = index + 1 < text.length ? text[index + 1] : '';
-
-    if (inQuotes) {
-      if (char == '"' && next == '"') {
-        cell.write('"');
-        index++;
-      } else if (char == '"') {
-        inQuotes = false;
-      } else {
-        cell.write(char);
-      }
-      continue;
-    }
-
-    if (char == '"') {
-      inQuotes = true;
-    } else if (char == ',') {
-      row.add(cell.toString());
-      cell.clear();
-    } else if (char == '\n') {
-      row.add(cell.toString().replaceFirst(RegExp(r'\r$'), ''));
-      rows.add(row);
-      row = <String>[];
-      cell.clear();
-    } else {
-      cell.write(char);
-    }
-  }
-
-  if (cell.isNotEmpty || row.isNotEmpty) {
-    row.add(cell.toString().replaceFirst(RegExp(r'\r$'), ''));
-    rows.add(row);
-  }
-
-  return rows;
-}
-
-String? _parseDateKey(String value) {
-  final match = RegExp(
-    r'^\s*(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})\s*$',
-  ).firstMatch(value);
-  if (match == null) {
-    return null;
-  }
-
-  final day = int.tryParse(match.group(1)!);
-  final month = int.tryParse(match.group(2)!);
-  final rawYear = int.tryParse(match.group(3)!);
-  final year = rawYear == null || rawYear >= 100 ? rawYear : 2000 + rawYear;
-  if (day == null || month == null || year == null) {
-    return null;
-  }
-  if (month < 1 || month > 12 || day < 1) {
-    return null;
-  }
-  final lastDay = DateTime(year, month + 1, 0).day;
-  if (day > lastDay) {
-    return null;
-  }
-
-  return AppDateUtils.dateKey(DateTime(year, month, day));
-}
-
-double _parseSheetNumber(String value) {
-  var cleaned = value
-      .replaceAll('₺', '')
-      .replaceAll('TL', '')
-      .replaceAll('tl', '')
-      .replaceAll(' ', '')
-      .trim();
-  if (cleaned.isEmpty) {
-    return 0;
-  }
-
-  if (cleaned.contains(',') && cleaned.contains('.')) {
-    cleaned = cleaned.replaceAll('.', '').replaceAll(',', '.');
-  } else if (cleaned.contains(',')) {
-    cleaned = cleaned.replaceAll(',', '.');
-  } else if (cleaned.contains('.')) {
-    final parts = cleaned.split('.');
-    final looksLikeThousands = parts.length > 1 &&
-        parts.last.length == 3 &&
-        parts.every((part) => part.isNotEmpty);
-    if (looksLikeThousands) {
-      cleaned = cleaned.replaceAll('.', '');
-    }
-  }
-
-  return double.tryParse(cleaned) ?? 0;
 }

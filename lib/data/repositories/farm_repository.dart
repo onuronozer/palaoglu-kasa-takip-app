@@ -267,6 +267,11 @@ class FarmRepository {
     );
 
     await _firestore.runTransaction((transaction) async {
+      final existingSale = await transaction.get(_sales.doc(id));
+      if (existingSale.exists) {
+        _verifyReplay(existingSale.data()!, saleWithId.toCreateMap());
+        return;
+      }
       final merchantRef = _merchants.doc(saleWithId.merchantId);
       final merchantSnapshot = await transaction.get(merchantRef);
       if (!merchantSnapshot.exists) {
@@ -354,6 +359,11 @@ class FarmRepository {
     );
 
     await _firestore.runTransaction((transaction) async {
+      final existingPayment = await transaction.get(_payments.doc(id));
+      if (existingPayment.exists) {
+        _verifyReplay(existingPayment.data()!, paymentWithId.toCreateMap());
+        return;
+      }
       final merchantRef = _merchants.doc(paymentWithId.merchantId);
       final merchantSnapshot = await transaction.get(merchantRef);
       if (!merchantSnapshot.exists) {
@@ -551,5 +561,16 @@ class FarmRepository {
       'active': false,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  void _verifyReplay(
+      Map<String, dynamic> existing, Map<String, dynamic> requested) {
+    for (final entry in requested.entries) {
+      if (entry.key == 'createdAt' || entry.key == 'updatedAt') continue;
+      if (existing[entry.key] != entry.value) {
+        throw StateError(
+            'Satır daha önce kaydedilmiş. Kayıt dökümünden düzenleyin.');
+      }
+    }
   }
 }
