@@ -26,7 +26,7 @@ class ExpenseCategoryChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Masraf Kategorileri',
+            'Nakit Masraf Kategorileri',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),

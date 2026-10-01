@@ -170,8 +170,8 @@ _ReportDetailInfo _detailInfo(String type) {
   switch (type) {
     case ReportDetailTypes.masraf:
       return const _ReportDetailInfo(
-        title: 'Toplam Masraf Detayı',
-        subtitle: 'Masraflar kalem kalem ve kayıt kayıt.',
+        title: 'Nakit Masraf Detayı',
+        subtitle: 'Kasadan ödenen normal masraf kayıtları.',
         icon: Icons.receipt_long,
         color: AppColors.expense,
       );
@@ -226,8 +226,8 @@ _ReportDetailInfo _detailInfo(String type) {
       );
     case ReportDetailTypes.cashPaid:
       return const _ReportDetailInfo(
-        title: 'Kasadan Ödenen Detayı',
-        subtitle: 'Kasadan nakit çıkan kayıtlar.',
+        title: 'Kasadan Çıkan Toplam Detayı',
+        subtitle: 'Masraf, işçi ve işletme ortağı ödemeleri.',
         icon: Icons.point_of_sale_outlined,
         color: AppColors.primary,
       );
@@ -266,7 +266,7 @@ _ReportDetailInfo _detailInfo(String type) {
 double _totalForDetail(String type, FinancialSummary summary) {
   switch (type) {
     case ReportDetailTypes.masraf:
-      return summary.monthlyMasraf;
+      return summary.cashPaidMasraf;
     case ReportDetailTypes.employee:
       return summary.employeePayments;
     case ReportDetailTypes.bank:
@@ -305,7 +305,8 @@ List<TransactionModel> _transactionsForDetail(
   final filtered = transactions.where((item) {
     switch (type) {
       case ReportDetailTypes.masraf:
-        return item.type == TransactionTypes.masraf;
+        return item.type == TransactionTypes.masraf &&
+            usesSource(item, PaymentSources.cash);
       case ReportDetailTypes.employee:
         return item.type == TransactionTypes.isci;
       case ReportDetailTypes.bank:
@@ -408,14 +409,14 @@ String _breakdownTitle(String type) {
     case ReportDetailTypes.creditCard:
       return 'Kredi Kartı Kalemleri';
     case ReportDetailTypes.cashPaid:
-      return 'Kasadan Ödenen Kalemler';
+      return 'Kasadan Çıkan Kalemler';
     case ReportDetailTypes.commissionPaid:
       return 'Ödeme Kaynağı';
     case ReportDetailTypes.debt:
       return 'Kişi Bazlı Kalan';
     case ReportDetailTypes.masraf:
     default:
-      return 'Masraf Kalemleri';
+      return 'Nakit Masraf Kalemleri';
   }
 }
 
@@ -424,7 +425,7 @@ String _recordsTitle(String type) {
     case ReportDetailTypes.ciro:
       return 'Ciro Kayıtları';
     case ReportDetailTypes.masraf:
-      return 'Masraf Kayıtları';
+      return 'Nakit Masraf Kayıtları';
     case ReportDetailTypes.employee:
       return 'İşçi Ödeme Kayıtları';
     case ReportDetailTypes.bank:
@@ -432,7 +433,7 @@ String _recordsTitle(String type) {
     case ReportDetailTypes.commissionPaid:
       return 'Ortak Ödeme Kayıtları';
     case ReportDetailTypes.cashPaid:
-      return 'Kasadan Ödenen Kayıtlar';
+      return 'Kasadan Çıkan Kayıtlar';
     case ReportDetailTypes.personalPaid:
       return 'Şahsi Ödenen Kayıtlar';
     case ReportDetailTypes.creditCard:

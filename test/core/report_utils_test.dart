@@ -44,6 +44,66 @@ void main() {
     expect(summary.cashOnHand, 57000);
   });
 
+  test('ödeme kaynağı toplamları masraf işçi ve ortak ödemelerini kapsar', () {
+    final transactions = [
+      _transaction(
+        TransactionTypes.masraf,
+        1000,
+        paymentSource: PaymentSources.cash,
+      ),
+      _transaction(
+        TransactionTypes.isci,
+        2000,
+        paymentSource: PaymentSources.cash,
+      ),
+      _transaction(
+        TransactionTypes.komisyon,
+        3000,
+        paymentSource: PaymentSources.cash,
+      ),
+      _transaction(
+        TransactionTypes.masraf,
+        4000,
+        paymentSource: PaymentSources.personal,
+      ),
+      _transaction(
+        TransactionTypes.isci,
+        5000,
+        paymentSource: PaymentSources.personal,
+      ),
+      _transaction(
+        TransactionTypes.komisyon,
+        6000,
+        paymentSource: PaymentSources.personal,
+      ),
+      _transaction(
+        TransactionTypes.masraf,
+        7000,
+        paymentSource: PaymentSources.bank,
+      ),
+      _transaction(
+        TransactionTypes.isci,
+        8000,
+        paymentSource: PaymentSources.bank,
+      ),
+      _transaction(
+        TransactionTypes.komisyon,
+        9000,
+        paymentSource: PaymentSources.bank,
+      ),
+    ];
+
+    final summary = ReportUtils.summarize(
+      transactions,
+      todayKey: '2026-09-10',
+    );
+
+    expect(summary.cashPaidMasraf, 1000);
+    expect(summary.cashPaidTotal, 6000);
+    expect(summary.personalPaidTotal, 15000);
+    expect(summary.bankPaidTotal, 24000);
+  });
+
   test('maaş geçmişi eski aylık raporları değiştirmez', () {
     const employee = EmployeeModel(
       id: '1',

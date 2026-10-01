@@ -32,7 +32,12 @@ Future<Uint8List> buildKiraathaneMonthlyReportPdf({
     transactions.where((item) => item.type == TransactionTypes.ciro),
   );
   final expenseRows = _transactionRows(
-    transactions.where((item) => item.type == TransactionTypes.masraf),
+    transactions.where(
+      (item) =>
+          item.type == TransactionTypes.masraf &&
+          item.usesPaymentSource &&
+          item.paymentSource == PaymentSources.cash,
+    ),
   );
   final personalRows = _transactionRows(
     transactions.where(
@@ -85,12 +90,12 @@ Future<Uint8List> buildKiraathaneMonthlyReportPdf({
           totalValue: MoneyUtils.format(summary.monthlyCiro),
         ),
         pw.SizedBox(height: 12),
-        _sectionTitle('Masraf Dökümü'),
+        _sectionTitle('Nakit Masraf Dökümü'),
         _table(
           headers: const ['Tarih', 'Kalem', 'Ödeme', 'Tutar'],
           rows: expenseRows,
-          totalLabel: 'Toplam Masraf',
-          totalValue: MoneyUtils.format(summary.monthlyMasraf),
+          totalLabel: 'Toplam Nakit Masraf',
+          totalValue: MoneyUtils.format(summary.cashPaidMasraf),
           flexes: const [1, 3, 2, 1],
         ),
         pw.SizedBox(height: 12),

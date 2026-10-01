@@ -13,7 +13,11 @@ class ExpenseDetailTableCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final expenses = transactions
-        .where((transaction) => transaction.type == TransactionTypes.masraf)
+        .where(
+          (transaction) =>
+              transaction.type == TransactionTypes.masraf &&
+              transaction.paymentSource == PaymentSources.cash,
+        )
         .toList()
       ..sort((a, b) => b.date.compareTo(a.date));
 
@@ -27,10 +31,13 @@ class ExpenseDetailTableCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Masraf Dökümü', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Nakit Masraf Dökümü',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 8),
           const Text(
-            'Ay içindeki masraflar kalem kalem, açıklamalarıyla birlikte.',
+            'Kasadan ödenen masraf kayıtları.',
             style: TextStyle(color: AppColors.mutedText, fontSize: 12),
           ),
           const SizedBox(height: 14),
@@ -38,7 +45,7 @@ class ExpenseDetailTableCard extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 14),
               child: Text(
-                'Bu ay masraf kaydı yok.',
+                'Bu ay nakit masraf kaydı yok.',
                 style: TextStyle(color: AppColors.mutedText),
               ),
             )

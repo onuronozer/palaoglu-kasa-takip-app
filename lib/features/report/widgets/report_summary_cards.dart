@@ -31,8 +31,8 @@ class ReportSummaryCards extends StatelessWidget {
         onTap: () => _openDetail(context, ReportDetailTypes.ciro),
       ),
       MetricCard(
-        title: 'Toplam Masraf',
-        value: MoneyUtils.format(summary.monthlyMasraf),
+        title: 'Nakit Masraflar',
+        value: MoneyUtils.format(summary.cashPaidMasraf),
         icon: Icons.receipt_long,
         color: AppColors.expense,
         onTap: () => _openDetail(context, ReportDetailTypes.masraf),
@@ -90,7 +90,7 @@ class ReportSummaryCards extends StatelessWidget {
         onTap: () => _openDetail(context, ReportDetailTypes.cashOnHand),
       ),
       MetricCard(
-        title: 'Kasadan Ödenen',
+        title: 'Kasadan Çıkan Toplam',
         value: MoneyUtils.format(summary.cashPaidTotal),
         icon: Icons.point_of_sale_outlined,
         color: AppColors.primary,
