@@ -398,6 +398,7 @@ Firebase Rules yayınlanırken `firestore.rules` içindeki tarım koleksiyon kur
 - A sütununda `Gün` veya `Tarih`, B sütununda `Ciro` veya `Toplam Ciro` başlığı olmalıdır.
 - Sekme adıyla satır tarihleri uyuşmuyorsa o ayın verisi güvenlik amacıyla kullanılmaz.
 - Firestore'a otomatik kayıt yapılmaz; e-tabloda bulunan eksik ciro ana ekranda onay için gösterilir.
+- Yeni ay sekmesini otomatik oluşturmak için `docs/google-sheets-aylik-otomasyon.md` kurulumunu uygulayın.
 
 ## iOS Paylaşım Kontrolü
 
