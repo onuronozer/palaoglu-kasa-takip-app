@@ -315,7 +315,7 @@ class _PasteInputCard extends StatelessWidget {
             decoration: const InputDecoration(
               labelText: 'Gün, işlem, konu ve tutar',
               hintText:
-                  '01;ciro;;19450\n01;masraf;Çay;1250\n01;isci;Mehmet;2000',
+                  '01;ciro;;19450\n01;masraf;Çay;1250\n01;isci;Mehmet;2000\n01;banka;İş Bankası;10000',
               alignLabelWithHint: true,
               prefixIcon: Icon(Icons.table_rows_outlined),
             ),
@@ -782,6 +782,9 @@ class _PasteImportRow {
     if (type == TransactionTypes.isci) {
       return person.isEmpty ? '-' : person;
     }
+    if (type == TransactionTypes.banka) {
+      return description.isEmpty ? category : description;
+    }
     if (type == TransactionTypes.masraf) {
       return category.isEmpty ? '-' : category;
     }
@@ -1192,7 +1195,7 @@ _ParsedLine _parseTypedParts({
     person: _personFor(type, subject),
     amount: amount,
     paymentSource: _parsePaymentSource(paymentSourceText),
-    description: _descriptionFor(type),
+    description: _descriptionFor(type, subject),
   );
 }
 
@@ -1294,6 +1297,11 @@ String? _parseTransactionType(String value) {
       folded == 'calisan') {
     return TransactionTypes.isci;
   }
+  if (folded == 'banka' ||
+      folded == 'bankaya yatan' ||
+      folded == 'bankayatir') {
+    return TransactionTypes.banka;
+  }
   return null;
 }
 
@@ -1303,6 +1311,9 @@ String _categoryFor(String type, String subject) {
   }
   if (type == TransactionTypes.isci) {
     return AppCategories.isci;
+  }
+  if (type == TransactionTypes.banka) {
+    return AppCategories.banka;
   }
   final trimmed = subject.trim();
   return trimmed.isEmpty ? 'Genel Masraf' : trimmed;
@@ -1315,12 +1326,16 @@ String _personFor(String type, String subject) {
   return '';
 }
 
-String _descriptionFor(String type) {
+String _descriptionFor(String type, String subject) {
   if (type == TransactionTypes.ciro) {
     return 'Yapıştırarak ciro girişi';
   }
   if (type == TransactionTypes.isci) {
     return 'Yapıştırarak işçi ödemesi';
+  }
+  if (type == TransactionTypes.banka) {
+    final trimmed = subject.trim();
+    return trimmed.isEmpty ? 'Yapıştırarak bankaya yatan girişi' : trimmed;
   }
   return 'Yapıştırarak masraf girişi';
 }
@@ -1346,6 +1361,7 @@ String _transactionSignature(TransactionModel transaction) {
     type: transaction.type,
     category: transaction.category,
     person: transaction.person,
+    description: transaction.description,
     amount: transaction.amount,
   );
 }
@@ -1356,6 +1372,7 @@ String _parsedSignature(_ParsedLine parsed) {
     type: parsed.type,
     category: parsed.category,
     person: parsed.person,
+    description: parsed.description,
     amount: parsed.amount,
   );
 }
@@ -1365,9 +1382,14 @@ String _signature({
   required String type,
   required String category,
   required String person,
+  required String description,
   required double amount,
 }) {
-  final subject = type == TransactionTypes.isci ? person : category;
+  final subject = switch (type) {
+    TransactionTypes.isci => person,
+    TransactionTypes.banka => description,
+    _ => category,
+  };
   return '$date|$type|${_foldTurkish(subject)}|${amount.toStringAsFixed(2)}';
 }
 
