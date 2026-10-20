@@ -782,9 +782,6 @@ class _PasteImportRow {
     if (type == TransactionTypes.isci) {
       return person.isEmpty ? '-' : person;
     }
-    if (type == TransactionTypes.banka) {
-      return description.isEmpty ? category : description;
-    }
     if (type == TransactionTypes.masraf) {
       return category.isEmpty ? '-' : category;
     }
