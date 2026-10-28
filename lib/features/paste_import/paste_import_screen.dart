@@ -315,7 +315,7 @@ class _PasteInputCard extends StatelessWidget {
             decoration: const InputDecoration(
               labelText: 'Gün, işlem, konu ve tutar',
               hintText:
-                  '01;ciro;;19450\n01;masraf;Çay;1250\n01;isci;Mehmet;2000\n01;banka;İş Bankası;10000',
+                  '01;ciro;;19450\n01;masraf;Çay;1250\n01;isci;Mehmet;2000\n01;komisyon;Şükrü;1500\n01;banka;İş Bankası;10000',
               alignLabelWithHint: true,
               prefixIcon: Icon(Icons.table_rows_outlined),
             ),
@@ -1294,6 +1294,9 @@ String? _parseTransactionType(String value) {
       folded == 'calisan') {
     return TransactionTypes.isci;
   }
+  if (folded == 'komisyon' || folded == 'ortak' || folded == 'isletme ortagi') {
+    return TransactionTypes.komisyon;
+  }
   if (folded == 'banka' ||
       folded == 'bankaya yatan' ||
       folded == 'bankayatir') {
@@ -1308,6 +1311,9 @@ String _categoryFor(String type, String subject) {
   }
   if (type == TransactionTypes.isci) {
     return AppCategories.isci;
+  }
+  if (type == TransactionTypes.komisyon) {
+    return AppCategories.komisyon;
   }
   if (type == TransactionTypes.banka) {
     return AppCategories.banka;
@@ -1329,6 +1335,10 @@ String _descriptionFor(String type, String subject) {
   }
   if (type == TransactionTypes.isci) {
     return 'Yapıştırarak işçi ödemesi';
+  }
+  if (type == TransactionTypes.komisyon) {
+    final trimmed = subject.trim();
+    return trimmed.isEmpty ? 'Yapıştırarak işletme ortağı ödemesi' : trimmed;
   }
   if (type == TransactionTypes.banka) {
     final trimmed = subject.trim();
