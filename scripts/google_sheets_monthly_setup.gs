@@ -116,7 +116,9 @@ function palaogluResetMonthlyInputs_(sheet, year, monthIndex) {
     ]);
   }
 
-  sheet.getRange('A2:A32').setValues(dateValues).setNumberFormat('dd/MM/yyyy');
+  // The copied monthly sheet already keeps the date format. Setting the
+  // number format again fails when column A belongs to a typed Sheets table.
+  sheet.getRange('A2:A32').setValues(dateValues);
 }
 
 function palaogluShowResult_(result) {
